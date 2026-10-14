@@ -1,0 +1,93 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Before you upload: the app-store rejection checklist</title>
+  <meta name="description" content="The recurring reasons App Store and Google Play submissions get rejected — and how to check each one before you upload, for Android and iOS." />
+  <link rel="icon" href="../favicon.svg" type="image/svg+xml" />
+  <link rel="canonical" href="https://booleanbuild.com/posts/store-rejection-checklist.html" />
+  <meta property="og:type" content="article" />
+  <meta property="og:title" content="Before you upload: the app-store rejection checklist" />
+  <meta property="og:description" content="The recurring reasons App Store and Google Play submissions get rejected — and how to check each before you upload." />
+  <script type="application/ld+json">
+  {"@context":"https://schema.org","@type":"BlogPosting","headline":"Before you upload: the app-store rejection checklist","datePublished":"2026-10-14","author":{"@type":"Organization","name":"Boolean Build"},"publisher":{"@type":"Organization","name":"Boolean Bros"},"mainEntityOfPage":"https://booleanbuild.com/posts/store-rejection-checklist.html"}
+  </script>
+  <link rel="stylesheet" href="../style.css" />
+</head>
+<body>
+  <div class="wrap">
+    <header>
+      <a class="brand" href="../">Boolean <span>Build</span></a>
+      <nav><a href="../#posts">Posts</a><a href="../#tools">Tools</a><a href="../#subscribe">Subscribe</a><a href="https://github.com/nwebersoftware" rel="me">GitHub</a></nav>
+    </header>
+
+    <main>
+      <h1>Before you upload: the app-store rejection checklist</h1>
+      <div class="date">2026-10-14</div>
+
+      <p>Store rejections feel random. They’re not — the same handful of things bounce submissions over and
+        over, and almost all of them are checkable <em>before</em> you click Upload. Here’s the list,
+        split by platform, with a link to the fix for each.</p>
+
+      <h2>Android (Google Play)</h2>
+      <ul>
+        <li><strong>16 KB page size.</strong> Apps targeting Android 15+ must have native libs built with
+          16 KB alignment, or Play rejects the bundle. Full explainer + fix →
+          <a href="16kb-page-size.html">Fixing the “16 KB page size” rejection</a>. Check any build with
+          <a href="https://github.com/nwebersoftware/store-check">store-check</a>.</li>
+        <li><strong>Target API level too low.</strong> Play raises the minimum target SDK yearly; below it,
+          the upload is refused. Bump <code>targetSdkVersion</code> (and rebuild).</li>
+        <li><strong>Data safety / permissions declarations.</strong> Declared permissions must match what
+          the app actually requests; mismatches or over-broad permissions get flagged.</li>
+        <li><strong>Icon vs. listing.</strong> The store-listing icon must match the installed app icon —
+          a mismatch shows up as a “misleading” flag.</li>
+      </ul>
+
+      <h2>iOS (App Store / TestFlight)</h2>
+      <ul>
+        <li><strong>Build number.</strong> Missing or non-numeric <code>CFBundleVersion</code> blocks the
+          upload. It must be period-separated integers.</li>
+        <li><strong>Export-compliance key.</strong> Without <code>ITSAppUsesNonExemptEncryption</code>,
+          App Store Connect nags on every build.</li>
+        <li><strong>Privacy manifest.</strong> iOS 17+ apps (and required SDKs) need
+          <code>PrivacyInfo.xcprivacy</code>.</li>
+        <li><strong>iPad orientations.</strong> If you support iPad, the app must declare all four
+          orientations or Apple rejects it.</li>
+        <li><strong>Icon alpha.</strong> The App Store icon can’t contain an alpha channel.</li>
+        <li>Getting the build uploaded in the first place →
+          <a href="testflight-without-eas.html">Ship an Expo app to TestFlight without EAS</a>. Check any
+          build with <a href="https://github.com/nwebersoftware/ipa-check">ipa-check</a>.</li>
+      </ul>
+
+      <h2>Both</h2>
+      <ul>
+        <li><strong>Metadata vs. reality.</strong> Screenshots and the description must match the app;
+          “misleading metadata” is a common bounce.</li>
+        <li><strong>Privacy &amp; policy.</strong> A working privacy-policy URL, correct age rating, and
+          honest ad/data disclosures.</li>
+        <li><strong>Crashes on launch.</strong> A build that crashes immediately never survives review —
+          which is why release-only crashes (minification, missing native code) matter so much. Keep a CI
+          gate so a broken build never ships → <a href="ci-for-expo.html">Add CI to an Expo app</a>.</li>
+      </ul>
+
+      <h2>Make it a pre-flight, not a surprise</h2>
+      <p>Both tools are dependency-free and CI-friendly — run them on every release build:</p>
+      <pre><code>npx github:nwebersoftware/store-check ./app-release.aab
+npx github:nwebersoftware/ipa-check   ./YourApp.ipa</code></pre>
+      <p>Sixty seconds of checks beats a two-day review bounce.</p>
+
+      <section id="subscribe" class="subscribe">
+        <h2 style="margin-top:0">Get new posts</h2>
+        <p class="lead" style="font-size:16px">One email when a new post ships. No spam.</p>
+        <form class="sub-form" action="https://buttondown.com/api/emails/embed-subscribe/nateweber" method="post" target="_blank">
+          <input type="email" name="email" placeholder="you@example.com" required aria-label="Email" />
+          <button type="submit">Subscribe</button>
+        </form>
+      </section>
+    </main>
+
+    <footer>© 2026 Boolean Build — a Boolean Bros project.</footer>
+  </div>
+</body>
+</html>
