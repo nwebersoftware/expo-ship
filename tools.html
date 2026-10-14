@@ -47,6 +47,12 @@
       <p><a href="https://github.com/nwebersoftware/icon-check">github.com/nwebersoftware/icon-check</a>
         · <a href="posts/app-icon-rejections.html">the icon rules explained</a></p>
 
+      <h2>Use in CI (GitHub Actions)</h2>
+      <p>Each repo is also a composite action — one line, no setup:</p>
+      <pre><code>- uses: nwebersoftware/store-check@main
+  with:
+    path: android/app/build/outputs/bundle/release/app-release.aab</code></pre>
+
       <h2>Why “dependency-free”</h2>
       <p>Each tool is plain Node with its own ZIP/ELF/PNG parsers — no native build steps, no heavy
         dependencies. They run anywhere Node runs (including CI runners) and <strong>exit non-zero</strong> on
