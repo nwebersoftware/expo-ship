@@ -1,0 +1,96 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Two build gates that make RN quality non-negotiable</title>
+  <meta name="description" content="A screens gate and an acceptance-contract gate that fail your React Native build instead of shipping blank screens and unproven invariants." />
+  <link rel="stylesheet" href="../style.css" />
+</head>
+<body>
+  <div class="wrap">
+    <header>
+      <a class="brand" href="../">Ship<span>Expo</span></a>
+      <nav><a href="../#posts">Posts</a><a href="https://github.com/nwebersoftware" rel="me">GitHub</a></nav>
+    </header>
+
+    <main>
+      <h1>Two build gates that make RN quality non-negotiable</h1>
+      <div class="date" style="color:var(--muted);font-size:14px">2026-10-14</div>
+
+      <p>React Native apps don't usually fail loudly. They rot quietly. A refactor leaves a screen that
+        <code>return null</code> and ships a blank page. A "temporary" stub passes lint, type-check, and
+        unit tests because nothing <em>renders</em> it. A business rule everyone agreed on — "the wallet
+        changes when you spend" — is never actually asserted, so it silently breaks three releases later.</p>
+
+      <p>Tests don't catch these because tests check <em>logic</em>, and these are <em>integration</em>
+        truths. So I made them impossible to skip, with two build gates that fail <code>npm run check</code>
+        and CI.</p>
+
+      <h2>Gate 1 — a screens gate: a screen must actually be a screen</h2>
+      <p>A stub screen (returns <code>null</code>, or renders nothing) is invisible to logic tests. This gate
+        walks <code>src/ui/screens</code> and asserts every file is a real, default-exported component that
+        renders markup:</p>
+      <pre><code>// src/__tests__/screens.gate.test.tsx
+import fs from 'fs';
+import path from 'path';
+
+const SCREENS_DIR = path.join(__dirname, '..', 'ui', 'screens');
+const MIN_LINES = 20;
+const files = fs.existsSync(SCREENS_DIR)
+  ? fs.readdirSync(SCREENS_DIR).filter((f) =&gt; f.endsWith('Screen.tsx'))
+  : [];
+
+describe('every screen is a real implementation (not a stub)', () =&gt; {
+  it('has screen files', () =&gt; expect(files.length).toBeGreaterThan(0));
+
+  files.forEach((file) =&gt; {
+    it(`${file} is implemented`, () =&gt; {
+      const src = fs.readFileSync(path.join(SCREENS_DIR, file), 'utf8');
+      expect(src.split('\n').length).toBeGreaterThan(MIN_LINES);
+      expect(src).not.toMatch(/return\s+null\s*;/);
+      expect(src).toMatch(/export\s+default/);
+      const mod = require(path.join(SCREENS_DIR, file));
+      expect(typeof mod.default).toBe('function');
+    });
+  });
+});</code></pre>
+      <p>It's ~25 lines, and it has caught a black-screen launch more than once.</p>
+
+      <h2>Gate 2 — an acceptance-contract gate: no unproven invariants</h2>
+      <p>Instead of hoping people remember to test the important things, you declare them as a
+        machine-checkable contract (<code>contract/acceptance_spec.json</code>):</p>
+      <pre><code>{
+  "invariants": [
+    { "id": "INV-PERSIST-1", "assertion": "settings round-trip through storage unchanged" },
+    { "id": "INV-STATE-1",   "assertion": "changing a setting leaves unrelated fields untouched" }
+  ],
+  "journeys": [
+    { "id": "J-SETTINGS-1", "name": "settings persist, reload, and reset" }
+  ]
+}</code></pre>
+      <p>Then a gate test fails the build unless <strong>every id is referenced by at least one test</strong>
+        — and it rejects fake coverage: tests that only assert on literals they defined themselves don't
+        count, and contract-tagged test files must import real code.</p>
+
+      <h2>The point</h2>
+      <p>Both gates are cheap and boring — which is exactly why they work. They turn quality from a habit
+        into a <strong>property of the build</strong>. <code>npm run check</code> (strict TS + ESLint + Jest)
+        stays green because it <em>has</em> to.</p>
+
+      <div class="cta">
+        <strong>The free baseline is on GitHub.</strong>
+        <p style="margin:6px 0 0;color:var(--muted)">Typed navigation, deep links, theme tokens, MMKV
+          persistence, native modules mocked for tests.</p>
+        <a class="btn" href="https://github.com/nwebersoftware/expo-starter">Get the repo</a>
+      </div>
+
+      <p style="color:var(--muted)">The gates above, plus CI and local iOS/Android release scripts, are
+        packaged in the <a href="https://booleanbro.gumroad.com/l/expo-production-starter">Expo Production
+        Starter</a>.</p>
+    </main>
+
+    <footer>© 2026 — release-engineering notes from the trenches.</footer>
+  </div>
+</body>
+</html>
