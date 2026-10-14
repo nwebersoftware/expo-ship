@@ -1,29 +1,29 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
   <channel>
-    <title>ReleaseReady</title>
-    <link>https://nwebersoftware.github.io/expo-ship/</link>
+    <title>Boolean Build</title>
+    <link>https://booleanbuild.com/</link>
     <description>Notes on shipping Expo &amp; React Native apps — release engineering, CI, and build gates.</description>
     <language>en</language>
-    <atom:link href="https://nwebersoftware.github.io/expo-ship/feed.xml" rel="self" type="application/rss+xml" />
+    <atom:link href="https://booleanbuild.com/feed.xml" rel="self" type="application/rss+xml" />
     <item>
       <title>Ship an Expo app to TestFlight without EAS</title>
-      <link>https://nwebersoftware.github.io/expo-ship/posts/testflight-without-eas.html</link>
-      <guid>https://nwebersoftware.github.io/expo-ship/posts/testflight-without-eas.html</guid>
+      <link>https://booleanbuild.com/posts/testflight-without-eas.html</link>
+      <guid>https://booleanbuild.com/posts/testflight-without-eas.html</guid>
       <pubDate>Wed, 14 Oct 2026 09:00:00 -0500</pubDate>
       <description>The local Xcode pipeline for archiving and uploading an iOS build to TestFlight — no EAS — and the gotchas that cost the most time.</description>
     </item>
     <item>
       <title>Fixing the Google Play "16 KB page size" rejection</title>
-      <link>https://nwebersoftware.github.io/expo-ship/posts/16kb-page-size.html</link>
-      <guid>https://nwebersoftware.github.io/expo-ship/posts/16kb-page-size.html</guid>
+      <link>https://booleanbuild.com/posts/16kb-page-size.html</link>
+      <guid>https://booleanbuild.com/posts/16kb-page-size.html</guid>
       <pubDate>Wed, 14 Oct 2026 08:00:00 -0500</pubDate>
       <description>Why your React Native app gets rejected on Android 15+, how to check it, and the fix that actually works.</description>
     </item>
     <item>
       <title>Two build gates that make RN quality non-negotiable</title>
-      <link>https://nwebersoftware.github.io/expo-ship/posts/build-gates.html</link>
-      <guid>https://nwebersoftware.github.io/expo-ship/posts/build-gates.html</guid>
+      <link>https://booleanbuild.com/posts/build-gates.html</link>
+      <guid>https://booleanbuild.com/posts/build-gates.html</guid>
       <pubDate>Wed, 14 Oct 2026 07:00:00 -0500</pubDate>
       <description>A screens gate and an acceptance-contract gate that fail your React Native build instead of shipping bugs.</description>
     </item>

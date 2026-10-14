@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
-  <url><loc>https://nwebersoftware.github.io/expo-ship/</loc></url>
-  <url><loc>https://nwebersoftware.github.io/expo-ship/posts/build-gates.html</loc></url>
-  <url><loc>https://nwebersoftware.github.io/expo-ship/posts/16kb-page-size.html</loc></url>
-  <url><loc>https://nwebersoftware.github.io/expo-ship/posts/testflight-without-eas.html</loc></url>
+  <url><loc>https://booleanbuild.com/</loc></url>
+  <url><loc>https://booleanbuild.com/posts/build-gates.html</loc></url>
+  <url><loc>https://booleanbuild.com/posts/16kb-page-size.html</loc></url>
+  <url><loc>https://booleanbuild.com/posts/testflight-without-eas.html</loc></url>
 </urlset>

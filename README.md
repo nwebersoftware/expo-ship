@@ -1,4 +1,4 @@
-# ReleaseReady
+# Boolean Build
 
 Notes on shipping **Expo & React Native apps** — release engineering, CI, build gates, and the
 store-submission grind. *A Boolean Bros project.*
