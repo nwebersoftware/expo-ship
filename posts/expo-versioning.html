@@ -1,0 +1,83 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Versioning an Expo app: version vs buildNumber vs versionCode</title>
+  <meta name="description" content="What each number does in an Expo app — version, ios.buildNumber, android.versionCode — when to bump them, and the CI trick that avoids 'build number already used'." />
+  <link rel="icon" href="../favicon.svg" type="image/svg+xml" />
+  <link rel="canonical" href="https://booleanbuild.com/posts/expo-versioning.html" />
+  <meta property="og:type" content="article" />
+  <meta property="og:title" content="Versioning an Expo app: version vs buildNumber vs versionCode" />
+  <meta property="og:description" content="What each number does, when to bump it, and the CI trick that avoids 'build number already used'." />
+  <script type="application/ld+json">
+  {"@context":"https://schema.org","@type":"BlogPosting","headline":"Versioning an Expo app: version vs buildNumber vs versionCode","datePublished":"2026-10-14","author":{"@type":"Organization","name":"Boolean Build"},"publisher":{"@type":"Organization","name":"Boolean Bros"},"mainEntityOfPage":"https://booleanbuild.com/posts/expo-versioning.html"}
+  </script>
+  <link rel="stylesheet" href="../style.css" />
+</head>
+<body>
+  <div class="wrap">
+    <header>
+      <a class="brand" href="../">Boolean <span>Build</span></a>
+      <nav><a href="../#posts">Posts</a><a href="../tools.html">Tools</a><a href="../#subscribe">Subscribe</a><a href="../about.html">About</a><a href="https://github.com/nwebersoftware" rel="me">GitHub</a></nav>
+    </header>
+
+    <main>
+      <h1>Versioning an Expo app: version vs buildNumber vs versionCode</h1>
+
+      <p>Three numbers that look interchangeable and aren’t. Get them wrong and you learn about it at the
+        worst possible time — mid-upload.</p>
+
+      <h2>1. <code>version</code> — the one users see</h2>
+      <p><code>expo.version</code> in <code>app.json</code> is the marketing version (“1.4.0”). It shows in
+        the store listing and becomes iOS’s <code>CFBundleShortVersionString</code> and Android’s
+        <code>versionName</code>. Bump it when you ship to users.</p>
+
+      <h2>2. <code>ios.buildNumber</code> — the one the store tracks</h2>
+      <p><code>expo.ios.buildNumber</code> maps to <code>CFBundleVersion</code>. App Store Connect refuses a
+        second upload with the same build number, so it must <strong>increase on every upload</strong> —
+        even a fix for the same user-facing version. And it must be **period-separated integers**
+        (<code>12</code> or <code>1.4.0</code>, never <code>1.4-beta</code>).</p>
+
+      <h2>3. <code>android.versionCode</code> — an integer that only goes up</h2>
+      <p><code>expo.android.versionCode</code> is a plain integer Google Play uses to order uploads.
+        Same rule: <strong>strictly increasing</strong>, never reused.</p>
+
+      <h2>The classic mistake</h2>
+      <p>You bump <code>version</code> to 1.4.0, re-upload to fix a typo in the listing, and get:</p>
+      <pre><code>ERROR: The bundle version must be higher than the previously uploaded version.</code></pre>
+      <p>Because you bumped the <em>marketing</em> version and not the <em>build</em> number. They’re
+        separate on purpose.</p>
+
+      <h2>The fix: let CI own the build number</h2>
+      <p>Don’t type these by hand — derive them so they can’t go backwards. In <code>app.config.js</code>:</p>
+      <pre><code>export default {
+  expo: {
+    version: '1.4.0',
+    ios: { buildNumber: String(process.env.BUILD_NUMBER ?? '1') },
+    android: { versionCode: Number(process.env.BUILD_NUMBER ?? 1) },
+  },
+};</code></pre>
+      <p>Then feed <code>BUILD_NUMBER</code> from your CI run number. Every upload gets a fresh, larger
+        number automatically — no more “already used”.</p>
+
+      <h2>Check it before you upload</h2>
+      <p>Missing or malformed build numbers are a common App Store bounce. <a
+        href="https://github.com/nwebersoftware/ipa-check">ipa-check</a> reads a built <code>.ipa</code> and
+        tells you if <code>CFBundleVersion</code> is missing or isn’t the right shape.</p>
+      <pre><code>npx @njweber/ipa-check ./YourApp.ipa</code></pre>
+
+      <section id="subscribe" class="subscribe">
+        <h2 style="margin-top:0">Get new posts</h2>
+        <p class="lead" style="font-size:16px">One email when a new post ships. No spam.</p>
+        <form class="sub-form" action="https://buttondown.com/api/emails/embed-subscribe/nateweber" method="post" target="_blank">
+          <input type="email" name="email" placeholder="you@example.com" required aria-label="Email" />
+          <button type="submit">Subscribe</button>
+        </form>
+      </section>
+    </main>
+
+    <footer>© 2026 Boolean Build — a Boolean Bros project.</footer>
+  </div>
+</body>
+</html>
