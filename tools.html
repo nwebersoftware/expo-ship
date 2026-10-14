@@ -68,6 +68,13 @@
       <p><a href="https://github.com/nwebersoftware/icon-check">github.com/nwebersoftware/icon-check</a>
         · <a href="posts/app-icon-rejections.html">the icon rules explained</a></p>
 
+      <h2>screenshot-check <span style="color:var(--muted);font-weight:400">— store screenshots</span></h2>
+      <p>Validates a folder of store screenshots against the rules — size, format, aspect ratio, and
+        count — for Google Play or the App Store. Catches the “your screenshot is too tall” upload error
+        before you hit it.</p>
+      <pre><code>npx @njweber/screenshot-check ./screenshots</code></pre>
+      <p><a href="https://github.com/nwebersoftware/screenshot-check">github.com/nwebersoftware/screenshot-check</a></p>
+
       <h2>Use in CI (GitHub Actions)</h2>
       <p>Each repo is also a composite action — one line, no setup:</p>
       <pre><code>- uses: nwebersoftware/store-check@main
