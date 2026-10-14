@@ -1,0 +1,107 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Ship an Expo app to TestFlight without EAS</title>
+  <meta name="description" content="A local Expo + Xcode pipeline to archive and upload an iOS build to TestFlight — no EAS required, with the gotchas that cost the most time." />
+  <link rel="canonical" href="https://nwebersoftware.github.io/expo-ship/posts/testflight-without-eas.html" />
+  <meta property="og:type" content="article" />
+  <meta property="og:title" content="Ship an Expo app to TestFlight without EAS" />
+  <meta property="og:description" content="Local Expo + Xcode pipeline to archive and upload to TestFlight — no EAS." />
+  <link rel="stylesheet" href="../style.css" />
+</head>
+<body>
+  <div class="wrap">
+    <header>
+      <a class="brand" href="../">Release<span>Ready</span></a>
+      <nav><a href="../#posts">Posts</a><a href="../#tools">Tools</a><a href="../#subscribe">Subscribe</a><a href="https://github.com/nwebersoftware" rel="me">GitHub</a></nav>
+    </header>
+
+    <main>
+      <h1>Ship an Expo app to TestFlight without EAS</h1>
+      <div class="date">2026-10-14</div>
+
+      <p>EAS Build is the easy path — but sometimes you can’t use it: you don’t want the
+        subscription, you’ve made custom native changes, or your CI owns the signing. You can do the whole
+        thing locally with <code>expo prebuild</code> + <code>xcodebuild</code>. Here’s the pipeline, and
+        the parts that bite.</p>
+
+      <h2>1. Prebuild the native project</h2>
+      <pre><code>npx expo prebuild --platform ios --no-install</code></pre>
+      <p>This generates <code>ios/</code> from your config. (Keep <code>ios/</code> out of the repo.)</p>
+
+      <h2>2. Pods — with UTF-8, or CocoaPods crashes</h2>
+      <pre><code>cd ios
+LANG=en_US.UTF-8 LC_ALL=en_US.UTF-8 pod install</code></pre>
+      <p>Some Ruby versions choke on a non-UTF-8 locale here; setting <code>LANG</code>/<code>LC_ALL</code>
+        avoids the cryptic crash.</p>
+
+      <h2>3. Archive (Release)</h2>
+      <pre><code>xcodebuild archive \
+  -workspace ios/YourApp.xcworkspace \
+  -scheme YourApp \
+  -configuration Release \
+  -destination "generic/platform=iOS" \
+  -archivePath build/YourApp.xcarchive \
+  -allowProvisioningUpdates \
+  DEVELOPMENT_TEAM=XXXXXXXXXX \
+  CODE_SIGN_STYLE=Automatic</code></pre>
+      <p><code>-allowProvisioningUpdates</code> lets Xcode use the Apple ID already signed in, so you
+        don’t need an API key or manually managed profiles.</p>
+
+      <h2>4. Export + upload</h2>
+      <pre><code>xcodebuild -exportArchive \
+  -archivePath build/YourApp.xcarchive \
+  -exportOptionsPlist ios/ExportOptions.plist \
+  -exportPath build/export \
+  -allowProvisioningUpdates</code></pre>
+      <p><code>ExportOptions.plist</code>:</p>
+      <pre><code>&lt;?xml version="1.0" encoding="UTF-8"?&gt;
+&lt;!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd"&gt;
+&lt;plist version="1.0"&gt;&lt;dict&gt;
+  &lt;key&gt;method&lt;/key&gt;&lt;string&gt;app-store-connect&lt;/string&gt;
+  &lt;key&gt;destination&lt;/key&gt;&lt;string&gt;upload&lt;/string&gt;
+  &lt;key&gt;teamID&lt;/key&gt;&lt;string&gt;XXXXXXXXXX&lt;/string&gt;
+  &lt;key&gt;uploadSymbols&lt;/key&gt;&lt;false/&gt;
+&lt;/dict&gt;&lt;/plist&gt;</code></pre>
+      <p>Then the build shows up in <strong>App Store Connect → TestFlight</strong>.</p>
+
+      <h2>The gotchas that cost the most time</h2>
+      <ul>
+        <li><strong>Xcode license.</strong> If <code>xcodebuild</code> refuses, run
+          <code>sudo xcodebuild -license accept</code> once.</li>
+        <li><strong>Deployment target.</strong> Pods that still target iOS &lt; 15 error out. Add a
+          <code>post_install</code> in <code>ios/Podfile</code> forcing every pod target to 15.1.</li>
+        <li><strong>Bundle id</strong> must match <code>app.json</code>’s
+          <code>ios.bundleIdentifier</code>.</li>
+        <li><strong>Build number.</strong> Setting <code>CURRENT_PROJECT_VERSION</code> on the
+          <code>xcodebuild</code> command line does <em>not</em> change the archived version — the
+          Info.plist has it hardcoded. Set <code>CFBundleVersion</code> in the archive
+          <code>Info.plist</code>’s <code>ApplicationProperties</code> (and the app’s Info.plist), then
+          re-export.</li>
+        <li><strong><code>uploadSymbols=false</code></strong> — React Native’s prebuilt frameworks ship
+          without dSYMs; uploading symbols just errors.</li>
+      </ul>
+
+      <p>None of this is exotic — it’s just a sequence the tooling doesn’t spell out. Script it once
+        (<code>release_ios.sh</code>) and never think about it again.</p>
+
+      <section id="subscribe" class="subscribe">
+        <h2 style="margin-top:0">Get new posts</h2>
+        <p class="lead" style="font-size:16px">One email when a new post ships. No spam.</p>
+        <form class="sub-form" action="https://buttondown.com/api/emails/embed-subscribe/nateweber" method="post" target="_blank">
+          <input type="email" name="email" placeholder="you@example.com" required aria-label="Email" />
+          <button type="submit">Subscribe</button>
+        </form>
+      </section>
+
+      <p style="color:var(--muted)">A ready-made <code>release_ios.sh</code> (and the Android upload script)
+        ships in the <a href="https://booleanbro.gumroad.com/l/expo-production-starter">Expo Production
+        Starter</a>.</p>
+    </main>
+
+    <footer>© 2026 ReleaseReady — a Boolean Bros project.</footer>
+  </div>
+</body>
+</html>

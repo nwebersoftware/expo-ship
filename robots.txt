@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://nwebersoftware.github.io/expo-ship/sitemap.xml
