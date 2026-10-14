@@ -34,8 +34,10 @@ pre { background: var(--surface); border: 1px solid var(--border); border-radius
 code { font-family: "SF Mono", Menlo, Consolas, monospace; }
 :not(pre) > code { background: var(--surface); border: 1px solid var(--border); border-radius: 6px; padding: 1px 6px; font-size: 15px; }
 footer { border-top: 1px solid var(--border); margin-top: 64px; padding: 28px 0 60px; color: var(--muted); font-size: 14px; }
-.cta { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 20px; margin: 32px 0; }
-.cta a.btn { display: inline-block; background: var(--accent); color: #04121a; font-weight: 700; padding: 10px 16px; border-radius: 999px; text-decoration: none; margin-top: 8px; }
+.cta { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 20px; margin: 32px 0; }.cta a.btn { display: inline-block; background: var(--accent); color: #04121a; font-weight: 700; padding: 10px 16px; border-radius: 999px; text-decoration: none; margin-top: 8px; }
+.tool { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 20px; margin: 16px 0 8px; }
+.tool h3 a { text-decoration: none; }
+.tool code { display: inline-block; margin-top: 4px; }
 .subscribe { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 22px; margin: 40px 0 8px; }
 .sub-form { display: flex; gap: 8px; margin-top: 12px; flex-wrap: wrap; }
 .sub-form input[type=email] {
