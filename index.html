@@ -11,7 +11,7 @@
   <div class="wrap">
     <header>
       <a class="brand" href=".">Release<span>Ready</span></a>
-      <nav><a href="#posts">Posts</a><a href="https://github.com/nwebersoftware" rel="me">GitHub</a></nav>
+      <nav><a href="#posts">Posts</a><a href="#subscribe">Subscribe</a><a href="https://github.com/nwebersoftware" rel="me">GitHub</a></nav>
     </header>
 
     <main>
@@ -27,7 +27,23 @@
           <p class="lead" style="font-size:16px">A screens gate and an acceptance-contract gate that fail your
             build instead of shipping bugs — with code.</p>
         </li>
+        <li>
+          <div class="date">2026-10-14</div>
+          <h3><a href="posts/16kb-page-size.html">Fixing the Google Play “16 KB page size” rejection</a></h3>
+          <p class="lead" style="font-size:16px">Why your React Native app gets rejected on Android 15+, and the
+            fix that actually works.</p>
+        </li>
       </ul>
+
+      <section id="subscribe" class="subscribe">
+        <h2 style="margin-top:0">Get new posts</h2>
+        <p class="lead" style="font-size:16px">One email when a new post ships. No spam, unsubscribe anytime.</p>
+        <form class="sub-form" action="REPLACE_WITH_FORM_ENDPOINT" method="post" target="_blank">
+          <input type="email" name="email" placeholder="you@example.com" required aria-label="Email" />
+          <button type="submit">Subscribe</button>
+        </form>
+        <p class="hint">See <code>SUBSCRIBE.md</code> in the repo to switch this on (takes ~2 minutes).</p>
+      </section>
 
       <div class="cta">
         <strong>Want the production layer?</strong>

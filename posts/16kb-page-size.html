@@ -1,0 +1,89 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Fixing the Google Play "16 KB page size" rejection</title>
+  <meta name="description" content="Why your React Native / Expo app gets rejected on Android 15+ for not supporting 16 KB page sizes, how to check, and the fix that actually works." />
+  <link rel="stylesheet" href="../style.css" />
+</head>
+<body>
+  <div class="wrap">
+    <header>
+      <a class="brand" href="../">Release<span>Ready</span></a>
+      <nav><a href="../#posts">Posts</a><a href="../#subscribe">Subscribe</a><a href="https://github.com/nwebersoftware" rel="me">GitHub</a></nav>
+    </header>
+
+    <main>
+      <h1>Fixing the Google Play “16 KB page size” rejection</h1>
+      <div class="date">2026-10-14</div>
+
+      <p>You upload a build, it’s fine for months, then suddenly Google Play rejects it with something
+        like:</p>
+      <pre><code>This app does not support 16 KB page sizes.
+Support for 16 KB page sizes is required for apps targeting Android 15+.</code></pre>
+      <p>Your code didn’t change. The requirement did. Here’s what’s actually happening and how to fix it.</p>
+
+      <h2>Why it happens</h2>
+      <p>Newer Android devices can run with <strong>16 KB memory pages</strong> (instead of the classic
+        4 KB). For an app to run on those devices, its <strong>native libraries (<code>.so</code> files)</strong>
+        must be built with ELF <code>LOAD</code> segments aligned to 16 KB — i.e. <code>p_align = 0x4000</code>
+        (16384). If any shipped <code>.so</code> is only 4 KB-aligned (<code>0x1000</code>), Play rejects
+        the upload.</p>
+      <p>This isn’t your app code — it’s the <strong>prebuilt native binaries</strong> that ship with
+        React Native / Expo (and any native modules).</p>
+
+      <h2>Check it yourself</h2>
+      <p>Unzip the AAB and inspect the native libs. With the Android NDK’s <code>llvm-readelf</code>
+        (or any <code>readelf</code>):</p>
+      <pre><code># find every .so and print its alignment
+unzip -q app.aab -d aab
+find aab -name '*.so' -path '*/arm64-v8a/*' | while read f; do
+  align=$(llvm-readelf -l "$f" | awk '/LOAD/{print $NF}' | sort -u | tail -1)
+  echo "$align  $f"
+done
+
+# 0x4000  → good (16 KB aligned)
+# 0x1000  → bad  (4 KB only) → Play will reject</code></pre>
+      <p>If you see <code>0x1000</code> anywhere under <code>lib/arm64-v8a/</code>, that library is the
+        problem.</p>
+
+      <h2>What does NOT work</h2>
+      <p>Don’t try to “fix” it by patching <code>p_align</code> in the ELF headers. A <code>PT_LOAD</code>
+        whose offset/vaddr aren’t congruent mod 16 KB becomes <strong>unloadable</strong> — the app crashes
+        on launch on affected devices. The alignment has to come from how the library was <em>built</em>.</p>
+
+      <h2>The fix: upgrade the toolchain</h2>
+      <p>16 KB-aligned prebuilts shipped with <strong>React Native 0.79+ / Expo SDK 53+</strong>. On that
+        baseline, every <code>arm64</code> lib reports <code>p_align = 0x4000</code>. So the real fix is
+        upgrading Expo/RN, not fiddling with the build:</p>
+      <pre><code>npx expo install expo@^53 react-native@^0.79
+npx expo prebuild --clean</code></pre>
+
+      <h2>The gotcha that bites you next</h2>
+      <p>While you’re bumping targets, <code>expo-modules-core</code>’s Kotlin won’t compile at
+        <code>compileSdk 36</code> on some setups. The combination that works: <strong><code>compileSdk 35</code>
+        with <code>targetSdk 36</code></strong>. AGP allows <code>targetSdk</code> to exceed
+        <code>compileSdk</code>, so you still meet the Play requirement without breaking the Kotlin build.</p>
+
+      <h2>Verify before you upload</h2>
+      <p>Re-run the check above on the freshly built AAB. When every <code>arm64-v8a</code> lib shows
+        <code>0x4000</code>, upload. (Also keep an eye on <code>x86_64</code> if you ship it.)</p>
+
+      <p>The lesson generalizes: <em>store requirements move, and they hit your prebuilt binaries, not your
+        code.</em> Budget for a toolchain bump whenever Play/Apple raises the floor.</p>
+
+      <div class="subscribe">
+        <h2 style="margin-top:0">Get new posts</h2>
+        <p class="lead" style="font-size:16px">One email when a new post ships. No spam.</p>
+        <form class="sub-form" action="REPLACE_WITH_FORM_ENDPOINT" method="post" target="_blank">
+          <input type="email" name="email" placeholder="you@example.com" required aria-label="Email" />
+          <button type="submit">Subscribe</button>
+        </form>
+      </div>
+    </main>
+
+    <footer>© 2026 ReleaseReady — a Boolean Bros project.</footer>
+  </div>
+</body>
+</html>
