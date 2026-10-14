@@ -1,0 +1,68 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Tools — check your build before the store rejects it</title>
+  <meta name="description" content="Small, dependency-free CLIs that check a mobile build before the App Store or Google Play does: 16 KB page size, iOS .ipa pitfalls, and icon rules." />
+  <link rel="icon" href="favicon.svg" type="image/svg+xml" />
+  <link rel="canonical" href="https://booleanbuild.com/tools.html" />
+  <meta property="og:type" content="website" />
+  <meta property="og:title" content="Tools — check your build before the store rejects it" />
+  <meta property="og:description" content="Dependency-free CLIs for store-submission checks: 16 KB page size, iOS .ipa pitfalls, icon rules." />
+  <script type="application/ld+json">
+  {"@context":"https://schema.org","@type":"CollectionPage","name":"Tools","url":"https://booleanbuild.com/tools.html","publisher":{"@type":"Organization","name":"Boolean Bros"}}
+  </script>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <div class="wrap">
+    <header>
+      <a class="brand" href="./">Boolean <span>Build</span></a>
+      <nav><a href="./#posts">Posts</a><a href="tools.html">Tools</a><a href="./#subscribe">Subscribe</a><a href="about.html">About</a><a href="https://github.com/nwebersoftware" rel="me">GitHub</a></nav>
+    </header>
+
+    <main>
+      <h1>Tools</h1>
+      <p class="lead">Small, dependency-free CLIs that check a build <em>before</em> the store does. Run
+        them in CI; catch the rejection before a reviewer does.</p>
+
+      <h2>store-check <span style="color:var(--muted);font-weight:400">— Android: 16 KB page size</span></h2>
+      <p>Google Play rejects Android 15+ apps whose native libraries aren’t built with 16 KB page alignment.
+        <code>store-check</code> reads every <code>.so</code> in the bundle and reports the offenders.</p>
+      <pre><code>npx @njweber/store-check ./app-release.aab</code></pre>
+      <p><a href="https://github.com/nwebersoftware/store-check">github.com/nwebersoftware/store-check</a>
+        · <a href="posts/16kb-page-size.html">the full explainer</a></p>
+
+      <h2>ipa-check <span style="color:var(--muted);font-weight:400">— iOS: submission pitfalls</span></h2>
+      <p>Audits an <code>.ipa</code> for the usual App Store bounce reasons: a missing/invalid build number,
+        the export-compliance key, a missing privacy manifest, iPad orientation gaps.</p>
+      <pre><code>npx @njweber/ipa-check ./YourApp.ipa</code></pre>
+      <p><a href="https://github.com/nwebersoftware/ipa-check">github.com/nwebersoftware/ipa-check</a></p>
+
+      <h2>icon-check <span style="color:var(--muted);font-weight:400">— icons</span></h2>
+      <p>Validates a PNG app icon: 1024×1024, square, and <strong>no alpha channel</strong> (the classic
+        App Store rejection) — or adaptive-icon foreground rules for Android.</p>
+      <pre><code>npx github:nwebersoftware/icon-check ./assets/icon.png</code></pre>
+      <p><a href="https://github.com/nwebersoftware/icon-check">github.com/nwebersoftware/icon-check</a>
+        · <a href="posts/app-icon-rejections.html">the icon rules explained</a></p>
+
+      <h2>Why “dependency-free”</h2>
+      <p>Each tool is plain Node with its own ZIP/ELF/PNG parsers — no native build steps, no heavy
+        dependencies. They run anywhere Node runs (including CI runners) and <strong>exit non-zero</strong> on
+        blocking issues, so they slot straight into a pipeline.</p>
+
+      <section id="subscribe" class="subscribe">
+        <h2 style="margin-top:0">Get new posts &amp; tools</h2>
+        <p class="lead" style="font-size:16px">One email when something new ships. No spam.</p>
+        <form class="sub-form" action="https://buttondown.com/api/emails/embed-subscribe/nateweber" method="post" target="_blank">
+          <input type="email" name="email" placeholder="you@example.com" required aria-label="Email" />
+          <button type="submit">Subscribe</button>
+        </form>
+      </section>
+    </main>
+
+    <footer>© 2026 Boolean Build — a Boolean Bros project.</footer>
+  </div>
+</body>
+</html>
