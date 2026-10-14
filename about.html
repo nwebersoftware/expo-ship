@@ -1,0 +1,61 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>About — Boolean Build</title>
+  <meta name="description" content="Boolean Build — notes on shipping Expo & React Native apps, release engineering and store-submission tooling. A Boolean Bros project." />
+  <link rel="icon" href="favicon.svg" type="image/svg+xml" />
+  <link rel="canonical" href="https://booleanbuild.com/about.html" />
+  <meta property="og:type" content="website" />
+  <meta property="og:title" content="About — Boolean Build" />
+  <meta property="og:description" content="Notes on shipping Expo & React Native apps, release engineering and store tooling. A Boolean Bros project." />
+  <script type="application/ld+json">
+  {"@context":"https://schema.org","@type":"AboutPage","name":"About Boolean Build","url":"https://booleanbuild.com/about.html","publisher":{"@type":"Organization","name":"Boolean Bros"}}
+  </script>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <div class="wrap">
+    <header>
+      <a class="brand" href="./">Boolean <span>Build</span></a>
+      <nav><a href="./#posts">Posts</a><a href="./#tools">Tools</a><a href="./#subscribe">Subscribe</a><a href="about.html">About</a><a href="https://github.com/nwebersoftware" rel="me">GitHub</a></nav>
+    </header>
+
+    <main>
+      <h1>About</h1>
+      <p class="lead">Notes on shipping Expo &amp; React Native apps — release engineering, CI, and the
+        store-submission grind.</p>
+
+      <p>Boolean Build is where we write down the parts of shipping a mobile app that nobody documents:
+        why a build gets rejected, how to get it through TestFlight locally, and the gates that keep a
+        codebase from rotting between releases.</p>
+
+      <p>It’s run by <strong>Boolean Bros LLC</strong>, an independent studio that ships mobile apps.
+        Most of what’s here comes from problems we hit for real — 16 KB page-size rejections,
+        “misleading icon” flags, release-only crashes — and then had to solve.</p>
+
+      <h2>Tools</h2>
+      <p>Small, dependency-free CLIs that check a build <em>before</em> the store does:</p>
+      <ul>
+        <li><a href="https://github.com/nwebersoftware/store-check">store-check</a> — Android: the Google Play 16 KB page-size requirement.</li>
+        <li><a href="https://github.com/nwebersoftware/ipa-check">ipa-check</a> — iOS: common App Store submission pitfalls in an <code>.ipa</code>.</li>
+      </ul>
+
+      <p>New here? Start with the <a href="posts/store-rejection-checklist.html">store-rejection
+        checklist</a>.</p>
+
+      <section id="subscribe" class="subscribe">
+        <h2 style="margin-top:0">Get new posts</h2>
+        <p class="lead" style="font-size:16px">One email when a new post ships. No spam.</p>
+        <form class="sub-form" action="https://buttondown.com/api/emails/embed-subscribe/nateweber" method="post" target="_blank">
+          <input type="email" name="email" placeholder="you@example.com" required aria-label="Email" />
+          <button type="submit">Subscribe</button>
+        </form>
+      </section>
+    </main>
+
+    <footer>© 2026 Boolean Build — a Boolean Bros project.</footer>
+  </div>
+</body>
+</html>
