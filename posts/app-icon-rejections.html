@@ -1,0 +1,80 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>The app icon rules that get apps rejected (iOS + Android)</title>
+  <meta name="description" content="The icon requirements that quietly block app submissions — iOS alpha channels, Android adaptive safe zones, and the splash-icon-vs-app-icon trap." />
+  <link rel="icon" href="../favicon.svg" type="image/svg+xml" />
+  <link rel="canonical" href="https://booleanbuild.com/posts/app-icon-rejections.html" />
+  <meta property="og:type" content="article" />
+  <meta property="og:title" content="The app icon rules that get apps rejected (iOS + Android)" />
+  <meta property="og:description" content="iOS alpha channels, Android adaptive safe zones, and the splash-icon-vs-app-icon trap." />
+  <script type="application/ld+json">
+  {"@context":"https://schema.org","@type":"BlogPosting","headline":"The app icon rules that get apps rejected (iOS + Android)","datePublished":"2026-10-14","author":{"@type":"Organization","name":"Boolean Build"},"publisher":{"@type":"Organization","name":"Boolean Bros"},"mainEntityOfPage":"https://booleanbuild.com/posts/app-icon-rejections.html"}
+  </script>
+  <link rel="stylesheet" href="../style.css" />
+</head>
+<body>
+  <div class="wrap">
+    <header>
+      <a class="brand" href="../">Boolean <span>Build</span></a>
+      <nav><a href="../#posts">Posts</a><a href="../#tools">Tools</a><a href="../#subscribe">Subscribe</a><a href="https://github.com/nwebersoftware" rel="me">GitHub</a></nav>
+    </header>
+
+    <main>
+      <h1>The app icon rules that get apps rejected (iOS + Android)</h1>
+      <div class="date">2026-10-14</div>
+
+      <p>Icon problems are the sneakiest store rejections, because the app works fine — it’s the
+        <em>artwork</em> that fails review. Here are the rules that actually bounce submissions, and the one
+        trap that caught me.</p>
+
+      <h2>iOS: the alpha channel is the classic rejection</h2>
+      <p>Your App Store icon is a <strong>1024×1024 PNG with no transparency</strong>. If the file has an
+        alpha channel — even if nothing looks see-through — App Store Connect rejects it:</p>
+      <pre><code>The app icon can't be transparent nor contain an alpha channel.</code></pre>
+      <p>Export it flattened (no alpha) and square. And make sure the icon in your asset catalog matches the
+        one in App Store Connect — a mismatch is its own flag.</p>
+
+      <h2>Android: adaptive icons need a safe zone</h2>
+      <p>Android uses an <strong>adaptive icon</strong>: a foreground layer and a background layer the OS
+        masks into a shape (circle, squircle, whatever the launcher wants). If your art extends to the edges
+        of the foreground, the mask <strong>clips it</strong>. Keep the important content inside roughly the
+        central <strong>~66%</strong> and let the background paint to the edges.</p>
+      <p>Common failure: a logo that’s centered on iOS looks cropped on Android because it ignored the
+        safe zone.</p>
+
+      <h2>The trap: your splash icon is not your app icon</h2>
+      <p>This is the one that bit me. The splash screen artwork and the launcher icon are <em>different
+        assets</em> — and it’s easy to upload the wrong one to the store listing. If the icon on your
+        listing doesn’t match the icon users see installed, Google flags it as a
+        <strong>“misleading icon.”</strong></p>
+      <p>Fix: keep <strong>one</strong> source of truth for the launcher icon, generate every size from it,
+        and use <em>that</em> file for the store listing too.</p>
+
+      <h2>What to check before you upload</h2>
+      <ul>
+        <li>iOS icon: <strong>1024×1024</strong>, <strong>square</strong>, <strong>no alpha</strong>.</li>
+        <li>Android adaptive foreground: art inside the <strong>safe zone</strong>; background fills the rest.</li>
+        <li>Store listing icon <strong>byte-identical</strong> to the installed/launcher icon.</li>
+        <li>Don’t ship the <strong>splash</strong> art as the icon (and vice-versa).</li>
+      </ul>
+
+      <p>These are cheap to check and expensive to miss — a two-day review bounce over a transparency
+        channel you can’t even see.</p>
+
+      <section id="subscribe" class="subscribe">
+        <h2 style="margin-top:0">Get new posts</h2>
+        <p class="lead" style="font-size:16px">One email when a new post ships. No spam.</p>
+        <form class="sub-form" action="https://buttondown.com/api/emails/embed-subscribe/nateweber" method="post" target="_blank">
+          <input type="email" name="email" placeholder="you@example.com" required aria-label="Email" />
+          <button type="submit">Subscribe</button>
+        </form>
+      </section>
+    </main>
+
+    <footer>© 2026 Boolean Build — a Boolean Bros project.</footer>
+  </div>
+</body>
+</html>

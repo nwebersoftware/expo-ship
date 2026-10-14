@@ -7,6 +7,13 @@
     <language>en</language>
     <atom:link href="https://booleanbuild.com/feed.xml" rel="self" type="application/rss+xml" />
     <item>
+      <title>The app icon rules that get apps rejected (iOS + Android)</title>
+      <link>https://booleanbuild.com/posts/app-icon-rejections.html</link>
+      <guid>https://booleanbuild.com/posts/app-icon-rejections.html</guid>
+      <pubDate>Wed, 14 Oct 2026 12:00:00 -0500</pubDate>
+      <description>iOS alpha channels, Android adaptive safe zones, and the splash-icon-vs-app-icon trap that gets apps flagged as misleading.</description>
+    </item>
+    <item>
       <title>Before you upload: the app-store rejection checklist</title>
       <link>https://booleanbuild.com/posts/store-rejection-checklist.html</link>
       <guid>https://booleanbuild.com/posts/store-rejection-checklist.html</guid>
