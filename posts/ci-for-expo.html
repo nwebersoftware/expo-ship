@@ -1,0 +1,97 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Add CI to an Expo app in 10 minutes (GitHub Actions)</title>
+  <meta name="description" content="A fast GitHub Actions pipeline for Expo/React Native: lint, typecheck, and Jest on every PR — no simulator required." />
+  <link rel="icon" href="../favicon.svg" type="image/svg+xml" />
+  <link rel="canonical" href="https://booleanbuild.com/posts/ci-for-expo.html" />
+  <meta property="og:type" content="article" />
+  <meta property="og:title" content="Add CI to an Expo app in 10 minutes (GitHub Actions)" />
+  <meta property="og:description" content="Lint, typecheck, and Jest for an Expo app on every PR — no simulator required." />
+  <link rel="stylesheet" href="../style.css" />
+</head>
+<body>
+  <div class="wrap">
+    <header>
+      <a class="brand" href="../">Boolean <span>Build</span></a>
+      <nav><a href="../#posts">Posts</a><a href="../#tools">Tools</a><a href="../#subscribe">Subscribe</a><a href="https://github.com/nwebersoftware" rel="me">GitHub</a></nav>
+    </header>
+
+    <main>
+      <h1>Add CI to an Expo app in 10 minutes (GitHub Actions)</h1>
+      <div class="date">2026-10-14</div>
+
+      <p>If your Expo app has no CI, every PR is a coin flip on whether the next person’s
+        <code>npm install</code> breaks the build. A minimal pipeline — lint, typecheck, and tests — takes
+        ten minutes to add and pays for itself on the first broken PR.</p>
+
+      <h2>The workflow</h2>
+      <p><code>.github/workflows/ci.yml</code>:</p>
+      <pre><code>name: CI
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+      - run: npm ci
+      - run: npm run check</code></pre>
+      <p>Where <code>npm run check</code> is <code>lint &amp;&amp; typecheck &amp;&amp; test</code> — the same
+        command you run locally, so there are no surprises.</p>
+
+      <h2>Make it one command</h2>
+      <p>The trick that keeps CI honest is making local and CI run the <em>same</em> script:</p>
+      <pre><code>{
+  "scripts": {
+    "lint": "eslint . --ext .ts,.tsx --max-warnings 0",
+    "typecheck": "tsc --noEmit",
+    "test": "jest --passWithNoTests",
+    "check": "npm run lint &amp;&amp; npm run typecheck &amp;&amp; npm test"
+  }
+}</code></pre>
+
+      <h2>Gotchas</h2>
+      <ul>
+        <li><strong><code>npm ci</code> needs a committed <code>package-lock.json</code>.</strong> If you
+          gitignore it, CI fails immediately — commit the lockfile.</li>
+        <li><strong>Jest runs without a simulator.</strong> <code>jest-expo</code> plus mocked native
+          modules means tests run on the runner with no device. Mock anything native in
+          <code>jest.setup.js</code>.</li>
+        <li><strong><code>cache: npm</code></strong> is the difference between a 4-minute and a 90-second
+          job.</li>
+        <li><strong>Zero warnings.</strong> <code>--max-warnings 0</code> turns “we’ll fix lint later” into
+          “the build is red.” That’s the point.</li>
+      </ul>
+
+      <p>CI is necessary but not sufficient — green lint/tsc/jest can still ship a blank screen or an
+        unproven invariant. That’s what <a href="build-gates.html">build gates</a> are for; pair the two
+        and your PRs actually mean something.</p>
+
+      <section id="subscribe" class="subscribe">
+        <h2 style="margin-top:0">Get new posts</h2>
+        <p class="lead" style="font-size:16px">One email when a new post ships. No spam.</p>
+        <form class="sub-form" action="https://buttondown.com/api/emails/embed-subscribe/nateweber" method="post" target="_blank">
+          <input type="email" name="email" placeholder="you@example.com" required aria-label="Email" />
+          <button type="submit">Subscribe</button>
+        </form>
+      </section>
+
+      <p style="color:var(--muted)">The CI workflow above (plus the two build gates and local release
+        scripts) ships in the <a href="https://booleanbro.gumroad.com/l/expo-production-starter">Expo
+        Production Starter</a>.</p>
+    </main>
+
+    <footer>© 2026 Boolean Build — a Boolean Bros project.</footer>
+  </div>
+</body>
+</html>

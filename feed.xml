@@ -7,6 +7,13 @@
     <language>en</language>
     <atom:link href="https://booleanbuild.com/feed.xml" rel="self" type="application/rss+xml" />
     <item>
+      <title>Add CI to an Expo app in 10 minutes (GitHub Actions)</title>
+      <link>https://booleanbuild.com/posts/ci-for-expo.html</link>
+      <guid>https://booleanbuild.com/posts/ci-for-expo.html</guid>
+      <pubDate>Wed, 14 Oct 2026 10:00:00 -0500</pubDate>
+      <description>A fast GitHub Actions pipeline for Expo/React Native — lint, typecheck, and Jest on every PR, no simulator required.</description>
+    </item>
+    <item>
       <title>Ship an Expo app to TestFlight without EAS</title>
       <link>https://booleanbuild.com/posts/testflight-without-eas.html</link>
       <guid>https://booleanbuild.com/posts/testflight-without-eas.html</guid>
