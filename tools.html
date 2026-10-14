@@ -47,6 +47,13 @@
       <pre><code>npx @njweber/ipa-check ./YourApp.ipa</code></pre>
       <p><a href="https://github.com/nwebersoftware/ipa-check">github.com/nwebersoftware/ipa-check</a></p>
 
+      <h2>privacy-check <span style="color:var(--muted);font-weight:400">— iOS privacy declarations</span></h2>
+      <p>Scans an app binary for privacy-sensitive APIs (camera, mic, photos, location, tracking, …)
+        and reports which required <code>Info.plist</code> usage-description keys are <strong>missing</strong>
+        — the rejection (and crash) that's easiest to ship by accident.</p>
+      <pre><code>npx @njweber/privacy-check ./YourApp.ipa</code></pre>
+      <p><a href="https://github.com/nwebersoftware/privacy-check">github.com/nwebersoftware/privacy-check</a></p>
+
       <h2>icon-check <span style="color:var(--muted);font-weight:400">— icons</span></h2>
       <p>Validates a PNG app icon: 1024×1024, square, and <strong>no alpha channel</strong> (the classic
         App Store rejection) — or adaptive-icon foreground rules for Android.</p>
