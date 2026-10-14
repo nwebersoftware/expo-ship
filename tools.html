@@ -27,6 +27,13 @@
       <p class="lead">Small, dependency-free CLIs that check a build <em>before</em> the store does. Run
         them in CI; catch the rejection before a reviewer does.</p>
 
+      <h2>app-check <span style="color:var(--muted);font-weight:400">— all of the above, in one command</span></h2>
+      <p>Auto-detects the artifact and runs the right audit — Android <code>.aab</code>/<code>.apk</code>,
+        iOS <code>.ipa</code>, or a PNG icon — then aggregates the verdict. Point it at a build directory
+        and it checks everything.</p>
+      <pre><code>npx github:nwebersoftware/app-check --dir ./dist</code></pre>
+      <p><a href="https://github.com/nwebersoftware/app-check">github.com/nwebersoftware/app-check</a></p>
+
       <h2>store-check <span style="color:var(--muted);font-weight:400">— Android: 16 KB page size</span></h2>
       <p>Google Play rejects Android 15+ apps whose native libraries aren’t built with 16 KB page alignment.
         <code>store-check</code> reads every <code>.so</code> in the bundle and reports the offenders.</p>
