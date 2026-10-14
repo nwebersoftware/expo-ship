@@ -1,7 +1,7 @@
-# ship-expo
+# ReleaseReady
 
 Notes on shipping **Expo & React Native apps** — release engineering, CI, build gates, and the
-store-submission grind.
+store-submission grind. *A Boolean Bros project.*
 
 Static site served via GitHub Pages.
 
