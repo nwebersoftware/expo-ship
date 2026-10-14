@@ -41,6 +41,13 @@
       <p><a href="https://github.com/nwebersoftware/store-check">github.com/nwebersoftware/store-check</a>
         · <a href="posts/16kb-page-size.html">the full explainer</a></p>
 
+      <h2>manifest-check <span style="color:var(--muted);font-weight:400">— Android manifest</span></h2>
+      <p>Reads the manifest straight out of an <code>.aab</code> (protobuf) or a text
+        <code>AndroidManifest.xml</code> and flags <code>android:debuggable</code>, cleartext traffic,
+        components that need <code>android:exported</code>, and sensitive permissions.</p>
+      <pre><code>npx @njweber/android-manifest-check ./app-release.aab</code></pre>
+      <p><a href="https://github.com/nwebersoftware/manifest-check">github.com/nwebersoftware/manifest-check</a></p>
+
       <h2>ipa-check <span style="color:var(--muted);font-weight:400">— iOS: submission pitfalls</span></h2>
       <p>Audits an <code>.ipa</code> for the usual App Store bounce reasons: a missing/invalid build number,
         the export-compliance key, a missing privacy manifest, iPad orientation gaps.</p>
