@@ -1,0 +1,71 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Products — production-ready Expo &amp; full-stack starter kits</title>
+  <meta name="description" content="Production-ready starter kits for shipping Expo / React Native apps: build gates, CI, release scripts, and a full-stack directory app with Supabase + admin." />
+  <link rel="icon" href="favicon.svg" type="image/svg+xml" />
+  <link rel="canonical" href="https://booleanbuild.com/products.html" />
+  <meta property="og:type" content="website" />
+  <meta property="og:title" content="Products — production-ready Expo &amp; full-stack starter kits" />
+  <meta property="og:description" content="Starter kits with build gates, CI, release scripts, and a full-stack directory app (Supabase + admin)." />
+  <script type="application/ld+json">
+  {"@context":"https://schema.org","@type":"CollectionPage","name":"Products","url":"https://booleanbuild.com/products.html","publisher":{"@type":"Organization","name":"Boolean Bros"}}
+  </script>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <div class="wrap">
+    <header>
+      <a class="brand" href="./">Boolean <span>Build</span></a>
+      <nav><a href="./#posts">Posts</a><a href="tools.html">Tools</a><a href="products.html">Products</a><a href="./#subscribe">Subscribe</a><a href="about.html">About</a><a href="https://github.com/nwebersoftware" rel="me">GitHub</a></nav>
+    </header>
+
+    <main>
+      <h1>Products</h1>
+      <p class="lead">The free tools catch problems after you’ve built. These starter kits are the
+        foundation you build <em>on</em> — the parts that are tedious to get right once and easy to get
+        wrong everywhere.</p>
+
+      <h2>Expo Production Starter — $49</h2>
+      <p>A clean, generic Expo (SDK 54) &amp; React Native starter that ships with the guardrails most
+        projects bolt on too late:</p>
+      <ul>
+        <li>TypeScript strict, typed navigation + deep linking, theme tokens</li>
+        <li>zustand state over MMKV behind a swappable storage interface</li>
+        <li><strong>Two build gates</strong> — stub screens fail, and every acceptance contract must be covered by a real test</li>
+        <li>CI workflow + local iOS (TestFlight) and Android (Play) release scripts</li>
+      </ul>
+      <p><a class="btn" href="https://booleanbro.gumroad.com/l/expo-production-starter">Get it on Gumroad →</a></p>
+
+      <h2>Directory Starter — $39</h2>
+      <p>The full-stack shape that actually sells: an Expo app <em>plus</em> a web admin panel and a
+        Supabase backend, already wired together.</p>
+      <ul>
+        <li>Postgres schema with row-level security (public read, owner manage, admin override)</li>
+        <li>React + Vite admin for listings/categories CRUD, with auth</li>
+        <li>Expo app with browse + detail screens reading live data through a typed data layer</li>
+        <li>Seed data, docs, and a commercial license</li>
+      </ul>
+      <p><a class="btn" href="https://booleanbro.gumroad.com/l/directory-starter">Get it on Gumroad →</a></p>
+
+      <h2>Why buy</h2>
+      <p>Both kits are the distilled output of building and shipping real apps — including the release
+        scripts and checks that took the most trial and error to get right. Commercial license, no
+        attribution required.</p>
+
+      <section id="subscribe" class="subscribe">
+        <h2 style="margin-top:0">Get new posts &amp; tools</h2>
+        <p class="lead" style="font-size:16px">One email when something new ships. No spam.</p>
+        <form class="sub-form" action="https://buttondown.com/api/emails/embed-subscribe/nateweber" method="post" target="_blank">
+          <input type="email" name="email" placeholder="you@example.com" required aria-label="Email" />
+          <button type="submit">Subscribe</button>
+        </form>
+      </section>
+    </main>
+
+    <footer>© 2026 Boolean Build — a Boolean Bros project.</footer>
+  </div>
+</body>
+</html>
