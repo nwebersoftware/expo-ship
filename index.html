@@ -34,6 +34,10 @@
       <h2 id="posts">Posts</h2>
       <ul class="post-list">
         <li>
+          <h3><a href="posts/android-manifest-rejections.html">The Android manifest mistakes that get Play builds rejected</a></h3>
+          <p class="lead" style="font-size:16px">android:exported, debuggable, cleartext, allowBackup, targetSdk and permissions — checked before you upload.</p>
+        </li>
+        <li>
           <h3><a href="posts/expo-versioning.html">Versioning an Expo app: version vs buildNumber vs versionCode</a></h3>
           <p class="lead" style="font-size:16px">What each number does, when to bump it, and the CI trick that avoids “build number already used”.</p>
         </li>
@@ -106,7 +110,7 @@
         <p class="lead" style="font-size:16px;margin:0 0 10px">Validates a PNG app icon — 1024×1024, square,
           and <strong>no alpha channel</strong> (the classic App Store rejection), or adaptive-icon foreground
           rules for Android.</p>
-        <code>npx icon-check ./assets/icon.png</code>
+        <code>npx @njweber/icon-check ./assets/icon.png</code>
       </div>
       <div class="tool">
         <h3 style="margin:0 0 6px"><a href="https://github.com/nwebersoftware/screenshot-check">screenshot-check</a></h3>

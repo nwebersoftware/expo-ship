@@ -1,0 +1,164 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>The Android manifest mistakes that get Play builds rejected</title>
+  <meta name="description" content="android:exported, debuggable, cleartext, allowBackup, targetSdkVersion and permissions — the manifest attributes that get Android builds rejected, and how to check them before you upload." />
+  <link rel="icon" href="../favicon.svg" type="image/svg+xml" />
+  <link rel="canonical" href="https://booleanbuild.com/posts/android-manifest-rejections.html" />
+  <meta property="og:type" content="article" />
+  <meta property="og:title" content="The Android manifest mistakes that get Play builds rejected" />
+  <meta property="og:description" content="The six manifest attributes that sink Android submissions — and how to check them in one command." />
+  <script type="application/ld+json">
+  {"@context":"https://schema.org","@type":"BlogPosting","headline":"The Android manifest mistakes that get Play builds rejected","datePublished":"2026-10-15","author":{"@type":"Organization","name":"Boolean Build"},"publisher":{"@type":"Organization","name":"Boolean Bros"},"mainEntityOfPage":"https://booleanbuild.com/posts/android-manifest-rejections.html"}
+  </script>
+  <link rel="stylesheet" href="../style.css" />
+</head>
+<body>
+  <div class="wrap">
+    <header>
+      <a class="brand" href="../">Boolean <span>Build</span></a>
+      <nav><a href="../#posts">Posts</a><a href="../tools.html">Tools</a><a href="../products.html">Products</a><a href="../#subscribe">Subscribe</a><a href="../about.html">About</a><a href="https://github.com/nwebersoftware" rel="me">GitHub</a></nav>
+    </header>
+
+    <main>
+      <h1>The Android manifest mistakes that get Play builds rejected</h1>
+
+      <p>Almost every Android release problem that isn’t a crash is a line in
+        <code>AndroidManifest.xml</code>. The manifest is the first thing Play’s own tooling reads, the
+        thing your permissions are derived from, and — because React Native merges yours together with
+        every library’s — the file nobody actually looks at until something breaks.</p>
+
+      <p>These are the six attributes that show up again and again in rejections, install failures and
+        pre-launch crashes. All six are checkable before you upload.</p>
+
+      <h2>1. <code>android:exported</code> missing on a component with an intent filter</h2>
+      <p>Since Android 12 (API 31), <strong>any</strong> activity, service or receiver with an
+        <code>&lt;intent-filter&gt;</code> must declare <code>android:exported</code> explicitly. Omit it
+        and the build fails to install on API 31+, which surfaces as an instant crash in pre-launch
+        reports rather than a clean error.</p>
+      <pre><code>&lt;activity android:name=".MainActivity" android:exported="true"&gt;
+  &lt;intent-filter&gt;
+    &lt;action android:name="android.intent.action.MAIN" /&gt;
+    &lt;category android:name="android.intent.category.LAUNCHER" /&gt;
+  &lt;/intent-filter&gt;
+&lt;/activity&gt;</code></pre>
+      <p>Deep-link filters deserve the same care: if a filter is only for your own <code>app://</code>
+        scheme, <code>exported="false"</code> is usually the correct answer, and it’s the safer default.</p>
+
+      <h2>2. <code>android:debuggable="true"</code> in a release</h2>
+      <p>Shipping a debug variant is the classic “Play says my app is debuggable” rejection. It usually
+        comes from building <code>assembleDebug</code> by hand instead of a release variant, or from a
+        stale <code>debug</code> applicationId surviving in a merged manifest. The merged manifest is the
+        only place to verify it — it’s the file that actually gets packaged.</p>
+
+      <h2>3. <code>usesCleartextTraffic="true"</code></h2>
+      <p>A blanket cleartext allowance means the app may talk HTTP. Play flags it, and it contradicts the
+        “data encrypted in transit” box you ticked in the Data safety form. If a single dev host genuinely
+        needs HTTP, use a network security config scoped to that domain instead of a global flag:</p>
+      <pre><code>&lt;application android:networkSecurityConfig="@xml/network_security_config"&gt;</code></pre>
+      <pre><code>&lt;!-- res/xml/network_security_config.xml --&gt;
+&lt;network-security-config&gt;
+  &lt;domain-config cleartextTrafficPermitted="true"&gt;
+    &lt;domain includeSubdomains="false"&gt;10.0.2.2&lt;/domain&gt;
+  &lt;/domain-config&gt;
+&lt;/network-security-config&gt;</code></pre>
+
+      <h2>4. <code>allowBackup="true"</code></h2>
+      <p>Not a rejection on its own, but it lets anyone with adb extract app data from a signed build,
+        which is awkward to explain in a privacy review. For apps holding credentials or health data,
+        <code>android:allowBackup="false"</code> (plus a backup rules file if you want partial backup) is
+        the defensible choice.</p>
+
+      <h2>5. <code>targetSdkVersion</code> falling behind</h2>
+      <p>Play requires new apps and updates to target an API level no more than one year older than the
+        latest major Android release, with the deadline landing each August. Miss it and every upload is
+        rejected until you bump. It’s boring and it lands annually without warning, which is exactly why
+        it should be a CI check rather than a calendar reminder.</p>
+
+      <p>In Expo, the manifest value comes from your build properties, so the fix is one plugin entry:</p>
+      <pre><code>{
+  "expo": {
+    "plugins": [
+      ["expo-build-properties", {
+        "android": { "compileSdkVersion": 35, "targetSdkVersion": 36 }
+      }]
+    ]
+  }
+}</code></pre>
+      <p>Note the asymmetry: <code>targetSdkVersion</code> may be newer than
+        <code>compileSdkVersion</code> (AGP allows it), but not the reverse. If
+        <code>expo-modules-core</code> fails to compile after a bump, the compile SDK is the number to
+        walk back, not the target.</p>
+
+      <h2>6. Permissions that don’t match your Data safety form</h2>
+      <p>The manifest is the source of truth for what you request, so a mismatch with the Data safety
+        form is trivially detectable — by Play and by anyone reading your AAB. Two failure modes:</p>
+      <ul>
+        <li><strong>Inherited permissions.</strong> Libraries add them for you: ad SDKs add
+          <code>com.google.android.gms.permission.AD_ID</code>, analytics adds <code>INTERNET</code> and
+          <code>ACCESS_NETWORK_STATE</code>, map SDKs add location. They must be declared in Data safety
+          even though you never typed them.</li>
+        <li><strong>Restricted permissions.</strong> <code>QUERY_ALL_PACKAGES</code>,
+          <code>MANAGE_EXTERNAL_STORAGE</code>, <code>ACCESS_BACKGROUND_LOCATION</code> and
+          <code>READ_SMS</code> require a declaration form and a use case Play accepts. Pulling one in by
+          accident means a rejection — Expo lets you strip a library’s permission from the final manifest:</li>
+      </ul>
+      <pre><code>{
+  "expo": {
+    "android": {
+      "blockedPermissions": ["com.google.android.gms.permission.AD_ID"]
+    }
+  }
+}</code></pre>
+      <p>Do <em>not</em> use <code>blockedPermissions</code> to paper over a permission you actually use,
+        though. Play’s automated check reads the same manifest you do.</p>
+
+      <h2>Read the merged manifest, not the one you wrote</h2>
+      <p>Your source manifest is a wish; the merged manifest is what ships. Find it after a release build:</p>
+      <pre><code># path varies a little by AGP version
+android/app/build/intermediates/merged_manifests/release/*/AndroidManifest.xml</code></pre>
+      <p>To inspect the AAB itself, <code>bundletool dump manifest --bundle app-release.aab</code> works
+        (it needs Java), and <code>aapt2 dump xmltree</code> does the same for a binary APK manifest.
+        If you’d rather not install the Android SDK on every machine and CI runner, that’s what
+        <a href="../tools.html">manifest-check</a> is for — it parses the AAB’s protobuf manifest (or a
+        text one) with no Java, no SDK, and exits non-zero on the two blocking findings:</p>
+
+      <pre><code>npx @njweber/android-manifest-check ./app-release.aab</code></pre>
+
+<pre><code>manifest-check — Android manifest audit
+artifact: ./app-release.aab
+
+✓ manifest  &lt;manifest&gt; parsed — com.example.app
+✓ debuggable  not debuggable
+✓ cleartext  no blanket cleartext traffic
+! allowBackup  allowBackup="true" — app data can be extracted via adb backup (consider false)
+! activity:.LegacyActivity:exported  is exported with no &lt;intent-filter&gt; — make sure that is intended
+✓ targetSdkVersion  targetSdkVersion 36
+✓ permissions  15 permission(s) declared, 7 sensitive — each needs a Play data-safety declaration</code></pre>
+
+      <p>That’s the whole argument for checking the manifest in CI: these failures are all mechanical, and
+        every one of them is cheaper to catch on the pull request than in a Play review. Pair it with the
+        <a href="16kb-page-size.html">16 KB page-size check</a> on the same artifact and the Android side
+        of a release stops being a guessing game. The rest of the recurring reasons live in the
+        <a href="store-rejection-checklist.html">rejection checklist</a>.</p>
+
+      <section id="subscribe" class="subscribe">
+        <h2 style="margin-top:0">Get new posts</h2>
+        <p class="lead" style="font-size:16px">One email when a new post ships. No spam.</p>
+        <form class="sub-form" action="https://buttondown.com/api/emails/embed-subscribe/nateweber" method="post" target="_blank">
+          <input type="email" name="email" placeholder="you@example.com" required aria-label="Email" />
+          <button type="submit">Subscribe</button>
+        </form>
+      </section>
+
+      <p style="color:var(--muted)">The release checks above, plus the build gates and local iOS/Android
+        release scripts, are packaged in the <a href="https://booleanbro.gumroad.com/l/expo-production-starter">Expo
+        Production Starter</a>.</p>
+    </main>
+
+    <footer>© 2026 Boolean Build — a Boolean Bros project.</footer>
+  </div>
+</body>
+</html>
