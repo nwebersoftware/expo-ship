@@ -23,6 +23,12 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: actions/configure-pages@v5
+      # Internal notes live in the private repo nwebersoftware/booleanbuild-plan.
+      # Never publish them (or stray draft assets) to the public site.
+      - name: Strip internal files from the published artifact
+        run: |
+          rm -rf internal README.md PLAN.md SUBSCRIBE.md
+          find . -maxdepth 1 -name '_*.png' -delete
       - uses: actions/upload-pages-artifact@v3
         with:
           path: .

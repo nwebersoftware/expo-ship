@@ -1,0 +1,4 @@
+
+# Draft assets and internal-only notes never belong in the published site
+_*.png
+internal/
