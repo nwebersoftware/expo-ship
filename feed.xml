@@ -7,6 +7,13 @@
     <language>en</language>
     <atom:link href="https://booleanbuild.com/feed.xml" rel="self" type="application/rss+xml" />
     <item>
+      <title>Store screenshots get rejected for geometry — the 2:1 trap and the accepted sizes</title>
+      <link>https://booleanbuild.com/posts/screenshot-rejections.html</link>
+      <guid>https://booleanbuild.com/posts/screenshot-rejections.html</guid>
+      <pubDate>Thu, 15 Oct 2026 08:00:00 -0500</pubDate>
+      <description>Why raw phone captures fail Google Play's 2:1 screenshot limit, the App Store's native sizes, and how to gate both in CI.</description>
+    </item>
+    <item>
       <title>The Android manifest mistakes that get Play builds rejected</title>
       <link>https://booleanbuild.com/posts/android-manifest-rejections.html</link>
       <guid>https://booleanbuild.com/posts/android-manifest-rejections.html</guid>

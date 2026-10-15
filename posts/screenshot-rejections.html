@@ -1,0 +1,125 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Store screenshots get rejected for geometry — the 2:1 trap and the accepted sizes</title>
+  <meta name="description" content="Google Play's 2:1 screenshot limit rejects raw phone captures (2.16:1 and up), and the App Store only accepts native device sizes. The arithmetic, the accepted sizes, and how to gate it in CI." />
+  <link rel="icon" href="../favicon.svg" type="image/svg+xml" />
+  <link rel="canonical" href="https://booleanbuild.com/posts/screenshot-rejections.html" />
+  <meta property="og:type" content="article" />
+  <meta property="og:title" content="Store screenshots get rejected for geometry — the 2:1 trap and the accepted sizes" />
+  <meta property="og:description" content="Why raw phone screenshots fail Google Play's 2:1 rule, the App Store sizes that are actually accepted, and how to check both in one command." />
+  <script type="application/ld+json">
+  {"@context":"https://schema.org","@type":"BlogPosting","headline":"Store screenshots get rejected for geometry — the 2:1 trap and the accepted sizes","datePublished":"2026-10-15","author":{"@type":"Organization","name":"Boolean Build"},"publisher":{"@type":"Organization","name":"Boolean Bros"},"mainEntityOfPage":"https://booleanbuild.com/posts/screenshot-rejections.html"}
+  </script>
+  <link rel="stylesheet" href="../style.css" />
+</head>
+<body>
+  <div class="wrap">
+    <header>
+      <a class="brand" href="../">Boolean <span>Build</span></a>
+      <nav><a href="../#posts">Posts</a><a href="../tools.html">Tools</a><a href="../products.html">Products</a><a href="../#subscribe">Subscribe</a><a href="../about.html">About</a><a href="https://github.com/nwebersoftware" rel="me">GitHub</a></nav>
+    </header>
+
+    <main>
+      <h1>Store screenshots get rejected for geometry — the 2:1 trap and the accepted sizes</h1>
+
+      <p>Screenshots are the last asset you produce before a release and the first thing that fails on
+        upload. In my experience none of those failures are artistic — they’re arithmetic, and the
+        arithmetic is checkable in a second.</p>
+
+      <h2>Google Play: the 2:1 ceiling</h2>
+      <p>Play’s screenshot rules are short and enforceable:</p>
+      <ul>
+        <li>shorter side <strong>≥ 320px</strong>, longer side <strong>≤ 3840px</strong></li>
+        <li>aspect ratio <strong>≤ 2:1</strong></li>
+        <li><strong>2–8</strong> screenshots</li>
+        <li>PNG or JPEG</li>
+      </ul>
+
+      <p>The 2:1 rule is the one that bites, because <strong>phones are taller than 2:1</strong>. A raw
+        capture from a modern device is already outside the limit:</p>
+
+      <pre><code>iPhone 6.5"  1242 × 2688  →  2688 / 1242 = 2.16:1   ✗ over 2:1
+iPhone 6.9"  1320 × 2868  →  2868 / 1320 = 2.17:1   ✗ over 2:1
+Android 20:9 1080 × 2400  →  2400 / 1080 = 2.22:1   ✗ over 2:1
+iPhone 5.5"  1242 × 2208  →  2208 / 1242 = 1.78:1   ✓ (16:9, still passes)</code></pre>
+
+      <p>That last line is the shape of the fix: anything 16:9 or 4:3 is safely inside the limit, so
+        <em>design</em> the screenshot at a compliant canvas instead of shipping the device capture.</p>
+
+      <h3>Three ways out</h3>
+      <ol>
+        <li><strong>Design on a 16:9 canvas</strong> (1080×1920 is the usual choice) and place the device
+          mock-up inside it. This is what most polished listings do, and it’s compliant by construction.</li>
+        <li><strong>Pad, don’t stretch.</strong> Letterbox the native capture onto a 2:1 background.
+          Stretching changes the content; padding doesn’t.</li>
+        <li><strong>Crop the status bar and nav bar.</strong> It buys a little height, but a 20:9 device
+          only becomes 2.05:1 — not enough on its own. Don’t rely on it.</li>
+      </ol>
+
+      <h2>App Store: it’s about native sizes, not ratios</h2>
+      <p>Apple doesn’t enforce an aspect ratio; it accepts a fixed set of device sizes and scales the
+        rest. Upload a size that isn’t native and you either get an upload error or a listing that looks
+        soft when scaled up. The native iPhone portrait sizes:</p>
+
+      <pre><code>6.9"   1290 × 2796  ·  1320 × 2868  ·  1260 × 2736
+6.7"   1284 × 2778
+6.5"   1242 × 2688
+6.1"   1170 × 2532
+5.5"   1242 × 2208</code></pre>
+
+      <p>Landscape is the transpose of each. Supply your largest set (6.9") and let Connect scale down —
+        but don’t go the other way, because upscaling is what makes a listing look cheap. Two more things
+        Apple is picky about: <strong>alpha channels</strong> (flatten to RGB before exporting — a
+        transparent PNG is a classic “invalid image” error) and the <strong>count</strong> (Apple wants
+        3–10; more than ten and the extra ones are ignored).</p>
+
+      <p>If you also ship an iPad or Android tablet build, the same image-check exercise applies to each
+        size class — which is exactly the sort of thing that turns into an afternoon of
+        uploading, failing, and re-exporting.</p>
+
+      <h2>Check it in one command</h2>
+      <p>Both rule sets can be verified from a folder of files before you open the console:</p>
+
+      <pre><code>npx @njweber/screenshot-check ./screenshots          # Google Play rules
+npx @njweber/screenshot-check ./screenshots --ios    # App Store rules</code></pre>
+
+      <p>The hard limits (Play’s 320–3840px and 2:1) exit non-zero; the judgement calls (native iPhone
+        sizes, alpha, counts above the minimum) are warnings, because failing a build for advice would be
+        worse than useless. That split is deliberate — a check that cries wolf is a check you delete.</p>
+
+      <h2>Gate it, don’t review it</h2>
+      <p>Every screenshot failure costs a full submission round trip, and none of them are ambiguous. So
+        put the check in front of the upload step — locally, and in the release workflow:</p>
+
+      <pre><code>- run: npx @njweber/screenshot-check ./store/screenshots
+- run: npx @njweber/screenshot-check ./store/screenshots --ios
+- run: ./scripts/upload-to-store.sh   # never reached if the geometry is wrong</code></pre>
+
+      <p>Same principle as every other check in the release pipeline: if a human has to remember it, it
+        eventually doesn’t happen. The geometry rules are the cheapest possible thing to automate — they
+        have no false positives, just arithmetic. If you’re already gating
+        <a href="app-icon-rejections.html">icons</a> and the
+        <a href="android-manifest-rejections.html">Android manifest</a>, screenshots are the last
+        third-party-visible asset left.</p>
+
+      <section id="subscribe" class="subscribe">
+        <h2 style="margin-top:0">Get new posts</h2>
+        <p class="lead" style="font-size:16px">One email when a new post ships. No spam.</p>
+        <form class="sub-form" action="https://buttondown.com/api/emails/embed-subscribe/nateweber" method="post" target="_blank">
+          <input type="email" name="email" placeholder="you@example.com" required aria-label="Email" />
+          <button type="submit">Subscribe</button>
+        </form>
+      </section>
+
+      <p style="color:var(--muted)">The full pre-flight — icons, screenshots, 16 KB alignment, manifests,
+        .ipa and privacy strings — is packaged in the
+        <a href="https://booleanbro.gumroad.com/l/expo-production-starter">Expo Production Starter</a>.</p>
+    </main>
+
+    <footer>© 2026 Boolean Build — a Boolean Bros project.</footer>
+  </div>
+</body>
+</html>
