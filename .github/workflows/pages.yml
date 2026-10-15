@@ -34,3 +34,12 @@ jobs:
           path: .
       - id: deployment
         uses: actions/deploy-pages@v4
+      # Tell IndexNow (Bing/Yandex/Seznam - Google ignores it) to re-crawl. Best effort:
+      # a failure here must never fail the deploy.
+      - name: Announce the deploy to IndexNow
+        continue-on-error: true
+        run: |
+          curl -sS -X POST "https://api.indexnow.org/indexnow" \
+            -H "Content-Type: application/json; charset=utf-8" \
+            --data '{"host":"booleanbuild.com","key":"5cb7d64c14cd9c2129d72e595286e366","keyLocation":"https://booleanbuild.com/5cb7d64c14cd9c2129d72e595286e366.txt","urlList":["https://booleanbuild.com/sitemap.xml"]}' \
+            -o /dev/null -w "indexnow: %{http_code}\n"
