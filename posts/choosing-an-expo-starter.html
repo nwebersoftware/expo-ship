@@ -1,0 +1,120 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Choosing an Expo / React Native starter template: a buyer's checklist</title>
+  <meta name="description" content="What to check before you buy or adopt a React Native starter template: does it typecheck under strict, are the screens real, is there a release path, what does the licence actually allow — plus a 10-minute test that separates a kit from a demo." />
+  <link rel="icon" href="../favicon.svg" type="image/svg+xml" />
+  <link rel="canonical" href="https://booleanbuild.com/posts/choosing-an-expo-starter.html" />
+  <meta property="og:type" content="article" />
+  <meta property="og:title" content="Choosing an Expo / React Native starter template: a buyer's checklist" />
+  <meta property="og:description" content="Nine things to check before you buy a starter template — and the 10-minute test that tells a kit from a demo." />
+  <script type="application/ld+json">
+  {"@context":"https://schema.org","@type":"BlogPosting","headline":"Choosing an Expo / React Native starter template: a buyer's checklist","datePublished":"2026-10-16","author":{"@type":"Organization","name":"Boolean Build"},"publisher":{"@type":"Organization","name":"Boolean Bros"},"mainEntityOfPage":"https://booleanbuild.com/posts/choosing-an-expo-starter.html"}
+  </script>
+  <link rel="stylesheet" href="../style.css" />
+</head>
+<body>
+  <div class="wrap">
+    <header>
+      <a class="brand" href="../">Boolean <span>Build</span></a>
+      <nav><a href="../#posts">Posts</a><a href="../tools.html">Tools</a><a href="../products.html">Products</a><a href="../#subscribe">Subscribe</a><a href="../about.html">About</a><a href="https://github.com/nwebersoftware" rel="me">GitHub</a></nav>
+    </header>
+
+    <main>
+      <h1>Choosing an Expo / React Native starter template: a buyer's checklist</h1>
+
+      <p>Most starter templates are judged by their screenshots. That is the worst way to judge them.
+        A template is a <em>starting point</em> — what matters is whether the code you inherit is real,
+        whether it builds, and whether the licence lets you ship. Here's what to check before you pay,
+        in the order that saves you the most time.</p>
+
+      <h2>1. Run it before you read a line of code</h2>
+      <p>A template's own quality gates are the fastest signal you'll get. In the project root:</p>
+      <pre><code>npm install
+npm run check      # or: npx tsc --noEmit && npx eslint . && npm test</code></pre>
+      <p>If that's not green on a fresh clone, the template is not "production-ready" no matter what the
+        listing says. If there is <em>no</em> <code>check</code> script and no test runner, you've just
+        learned that nobody has ever verified the thing you're about to build on.</p>
+
+      <h2>2. Are the screens real, or placeholders?</h2>
+      <p>Count the screens and open three of them at random. Look for the tells: a screen that returns
+        <code>null</code>, a <code>&lt;Text&gt;Coming soon&lt;/Text&gt;</code>, a wall of
+        <code>TODO</code>s, or a component that renders nothing when its data is empty. A template with
+        twenty "screens" and eighteen of them empty is a navigation demo, not a starting point.</p>
+      <p>Better: check whether the template <em>enforces</em> this. A gate test that fails the build when
+        a screen is a stub is worth more than any screenshot, because it keeps being true after you start
+        editing.</p>
+
+      <h2>3. Do the tests test behaviour, or just themselves?</h2>
+      <p>Open the test files. Real tests render a screen, press something, and assert what changed.
+        Fake tests assert that a constant equals a literal — they pass forever and prove nothing.</p>
+      <p>One specific thing to look for: does the template cover its own <em>acceptance criteria</em>?
+        The best kits ship a contract (what the app must do) plus tests that prove each clause — so when
+        you change something, the build tells you what you broke.</p>
+
+      <h2>4. Is there a release path, or just a dev server?</h2>
+      <p>Everyone can run <code>npm start</code>. The value is in the part after: how do the
+        <em>built artifacts</em> get made? Does the template include the commands to archive for
+        TestFlight and to build and upload an AAB for Play, or does it stop at "use EAS" and leave you
+        to work it out?</p>
+      <p>Check for the boring details that cost days: how it bumps <code>versionCode</code> /
+        <code>buildNumber</code>, where the signing config lives, and whether the store checks
+        (icon geometry, screenshot sizes, manifest flags) are automated.</p>
+
+      <h2>5. What happens when you close and reopen the app?</h2>
+      <p>State and persistence are where starter kits quietly fall apart. Set something, kill the app,
+        relaunch — is it still there? Is storage behind an interface you can swap (MMKV today,
+        something else tomorrow), or is it a call to a database in every screen?</p>
+
+      <h2>6. Read the licence before you fall in love with the code</h2>
+      <p>Three questions, in this order:</p>
+      <ul>
+        <li><strong>Can I ship commercially?</strong> Most permissive templates say yes; a few quietly don't.</li>
+        <li><strong>Do I have to attribute?</strong> Fine for a hobby project, awkward in a client app.</li>
+        <li><strong>Can I sell apps to clients with it, or is it one seat?</strong> "One developer, unlimited end products" is the norm — check that it says so.</li>
+      </ul>
+      <p>Also check that the template's own dependencies are licensed for what you're doing, and that it
+        bundles <em>no</em> third-party art, fonts, or audio you'd have to licence separately. A template
+        that ships stock music "for the demo" is a legal question you didn't budget for.</p>
+
+      <h2>7. Can you rename it in one sitting?</h2>
+      <p>A template you can't rename isn't a template; it's someone else's app. Look for a place where the
+        app name, bundle identifier, package name, and deep-link scheme live together (usually
+        <code>app.json</code>), and a README section that walks the rebrand. If the old vendor's name is
+        baked into a dozen files, you'll be hunting it for an afternoon.</p>
+
+      <h2>8. Dependency hygiene</h2>
+      <p>Check the SDK versions at the top of <code>package.json</code>. If it's an Expo SDK that's two
+        majors old, you're inheriting a migration before you've written a feature. If dependencies are
+        floating on <code>*</code> or unpinned ranges, your "green" clone today may not be green next
+        month. New Architecture support is worth a look, too — it's where Expo is going.</p>
+
+      <h2>9. The 10-minute evaluation</h2>
+      <pre><code># 1. Does it build green?
+npm install &amp;&amp; npm run check
+
+# 2. Are the screens real? (should be small numbers)
+grep -rl "TODO" src/ | wc -l
+grep -rn "return null" src/ | wc -l
+
+# 3. Is there a release path?
+ls scripts/ 2>/dev/null; grep -n "gradlew\|xcodebuild\|eas" package.json
+
+# 4. What's the licence?
+head -20 LICENSE*</code></pre>
+      <p>Ten minutes here saves a week there.</p>
+
+      <h2>If you'd rather start from one that already passes</h2>
+      <p>This is the checklist we build against, so it's the one we'd apply to ourselves: the free
+        <a href="https://github.com/nwebersoftware/expo-starter">Expo + TypeScript starter</a> is the
+        base, and the <a href="../products.html">production kits</a> add the gates, the tests, the
+        release scripts, and a commercial licence. Either way — run step 1 above on whatever you're
+        considering. It'll tell you more than any listing.</p>
+    </main>
+
+    <footer>© 2026 Boolean Build — a Boolean Bros project.</footer>
+  </div>
+</body>
+</html>

@@ -7,6 +7,13 @@
     <language>en</language>
     <atom:link href="https://booleanbuild.com/feed.xml" rel="self" type="application/rss+xml" />
     <item>
+      <title>Choosing an Expo / React Native starter template: a buyer's checklist</title>
+      <link>https://booleanbuild.com/posts/choosing-an-expo-starter.html</link>
+      <guid>https://booleanbuild.com/posts/choosing-an-expo-starter.html</guid>
+      <pubDate>Fri, 16 Oct 2026 08:00:00 -0500</pubDate>
+      <description>What to check before you buy or adopt a starter template — strict typecheck, real screens, a release path, licence terms — plus a 10-minute evaluation that separates a kit from a demo.</description>
+    </item>
+    <item>
       <title>Store screenshots get rejected for geometry — the 2:1 trap and the accepted sizes</title>
       <link>https://booleanbuild.com/posts/screenshot-rejections.html</link>
       <guid>https://booleanbuild.com/posts/screenshot-rejections.html</guid>
