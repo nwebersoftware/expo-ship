@@ -1,0 +1,158 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>“Multiple consecutive ads”: designing ad frequency that survives App Review</title>
+  <meta name="description" content="App Review rejects apps that show back-to-back interstitials. The call-site pattern that causes it, a testable frequency policy, and how to explain the change in your reply." />
+  <link rel="icon" href="../favicon.svg" type="image/svg+xml" />
+  <link rel="canonical" href="https://booleanbuild.com/posts/ad-frequency-review.html" />
+  <meta property="og:type" content="article" />
+  <meta property="og:title" content="“Multiple consecutive ads”: designing ad frequency that survives App Review" />
+  <meta property="og:description" content="Why four call sites became one rejection — and the policy that fixed it." />
+  <script type="application/ld+json">
+  {"@context":"https://schema.org","@type":"BlogPosting","headline":"“Multiple consecutive ads”: designing ad frequency that survives App Review","datePublished":"2026-10-19","author":{"@type":"Organization","name":"Boolean Build"},"publisher":{"@type":"Organization","name":"Boolean Bros"},"mainEntityOfPage":"https://booleanbuild.com/posts/ad-frequency-review.html"}
+  </script>
+  <link rel="stylesheet" href="../style.css" />
+</head>
+<body>
+  <div class="wrap">
+    <header>
+      <a class="brand" href="../">Boolean <span>Build</span></a>
+      <nav><a href="../#posts">Posts</a><a href="../tools.html">Tools</a><a href="../products.html">Products</a><a href="../#subscribe">Subscribe</a><a href="../about.html">About</a><a href="https://github.com/nwebersoftware" rel="me">GitHub</a></nav>
+    </header>
+
+    <main>
+      <h1>“Multiple consecutive ads”: designing ad frequency that survives App Review</h1>
+
+      <p>The rejection was two sentences long:</p>
+      <blockquote>
+        <p>“There are issues with the app's user interface that contribute to a lower-quality user
+          experience than App Store users expect. Specifically, the app displays excessive ads in a
+          manner that negatively impacts the user's experience and displays multiple consecutive ads.”</p>
+      </blockquote>
+      <p>No screenshot, no timestamp, no reproduction steps. Just a claim that was, unfortunately, true.</p>
+
+      <h2>The shape of the bug</h2>
+      <p>The game had four places where a run could end: a hard reset, a prestige reset, a second prestige
+        path, and a “breakthrough” confirmation. Each one did this:</p>
+      <pre><code>const interstitialAd = interstitialAdRef.current;
+if (interstitialAd &amp;&amp; interstitialAdLoaded) {
+  interstitialAd.show();
+}</code></pre>
+      <p>Four independent call sites, no shared state, and each one individually correct. The problem is
+        what happens when two of them fire close together: prestige, then breakthrough a few seconds
+        later, and the player gets two full-screen ads back to back. Add a rewarded video to the mix and
+        you can produce three.</p>
+      <p>This is the classic multi-call-site bug. Nothing is <em>broken</em>; the system as a whole has no
+        opinion about frequency.</p>
+
+      <h2>Put the policy in one place</h2>
+      <p>Ads should not be triggered by screens. They should be requested from a policy object that owns
+        the decision, with a clock you can inject so the rules are testable:</p>
+      <pre><code>export interface AdPolicyState {
+  sessionStartedMs: number;
+  lastInterstitialMs: number | null;
+  lastRewardedMs: number | null;
+  interstitialsShown: number;
+}
+
+// no ads at launch
+export const SESSION_GRACE_MS = 90_000;
+// at most one interstitial every 3 minutes
+export const MIN_INTERSTITIAL_INTERVAL_MS = 180_000;
+// never right after a rewarded video
+export const MIN_GAP_AFTER_REWARDED_MS = 120_000;
+export const MAX_INTERSTITIALS_PER_SESSION = 3;
+
+export function canShowInterstitial(state: AdPolicyState, now: number) {
+  if (state.interstitialsShown &gt;= MAX_INTERSTITIALS_PER_SESSION) {
+    return { allowed: false, reason: 'session-cap' as const };
+  }
+  if (now - state.sessionStartedMs &lt; SESSION_GRACE_MS) {
+    return { allowed: false, reason: 'session-grace' as const };
+  }
+  if (state.lastInterstitialMs !== null
+      &amp;&amp; now - state.lastInterstitialMs &lt; MIN_INTERSTITIAL_INTERVAL_MS) {
+    return { allowed: false, reason: 'too-soon' as const };
+  }
+  if (state.lastRewardedMs !== null
+      &amp;&amp; now - state.lastRewardedMs &lt; MIN_GAP_AFTER_REWARDED_MS) {
+    return { allowed: false, reason: 'after-rewarded' as const };
+  }
+  return { allowed: true };
+}</code></pre>
+      <p>Two rules beyond frequency matter:</p>
+      <ul>
+        <li><strong>A grace period.</strong> Ninety seconds after launch with no ads at all. Nobody
+          installing your app should meet a full-screen ad before they meet the product.</li>
+        <li><strong>No ad on the first reset.</strong> In our case the first prestige is a milestone.
+          Charging an ad for it is how you turn a reward into a toll.</li>
+      </ul>
+
+      <h2>Make the call sites unable to bypass it</h2>
+      <p>Replace every direct <code>show()</code> with a single function, and keep the loaded flag in a ref
+        so stale closures cannot lie to you:</p>
+      <pre><code>const showInterstitialNow = useCallback(() =&gt; {
+  const ad = interstitialAdRef.current;
+  if (!ad || !interstitialLoadedRef.current) return false;
+
+  const now = Date.now();
+  if (!canShowInterstitial(adPolicyRef.current, now).allowed) return false;
+
+  adPolicyRef.current = recordInterstitial(adPolicyRef.current, now);
+  ad.show();
+  return true;
+}, []);</code></pre>
+      <p>And record rewarded views, because “the player just watched a video on purpose” is the strongest
+        possible reason not to interrupt them again:</p>
+      <pre><code>ad.addAdEventListener(RewardedAdEventType.EARNED_REWARD, () =&gt; {
+  adPolicyRef.current = recordRewarded(adPolicyRef.current, Date.now());
+  grantReward();
+});</code></pre>
+
+      <h2>Test the exact thing that got rejected</h2>
+      <p>The whole point of a pure policy module is that the rejection case becomes a unit test:</p>
+      <pre><code>test('two resets seconds apart cannot produce two ads', () =&gt; {
+  let s = createAdPolicy(T0);
+  const firstReset = T0 + SESSION_GRACE_MS;
+
+  assert.equal(canShowInterstitial(s, firstReset).allowed, true);
+  s = recordInterstitial(s, firstReset);
+
+  assert.equal(canShowInterstitial(s, firstReset + 4_000).allowed, false);
+});</code></pre>
+      <p>Six tests cover the rules: grace, spacing, post-reward gap, session cap, immutability, and the
+        consecutive-reset case. They run in milliseconds and they encode a promise you made to a reviewer.</p>
+
+      <h2>Replying to App Review</h2>
+      <p>Vague rejections invite vague replies. Be specific, describe behaviour rather than intentions, and
+        name the build:</p>
+      <blockquote>
+        <p>Build 9 adds a single ad-frequency policy that every interstitial passes through: no
+          interstitial during the first 90 seconds of a session; at most one every 3 minutes; none within
+          2 minutes of a rewarded ad the player chose to watch; at most 3 per session; and none on the
+          player's first reset. Interstitials now only appear at reset/prestige moments — never during
+          gameplay, on launch, or over another ad.</p>
+      </blockquote>
+
+      <h2>What we would do differently</h2>
+      <p>Frequency policy should exist on day one, not after a rejection. It is a twenty-line module and a
+        handful of tests, and it is the difference between “the app shows ads” and “the app shows too
+        many”. If a game cannot justify interstitials under those rules, that is a revenue problem to
+        solve with rewarded video — not a reason to remove the rules.</p>
+
+      <section id="subscribe" class="subscribe">
+        <h2 style="margin-top:0">Get new posts</h2>
+        <p class="lead" style="font-size:16px">One email when a new post ships. No spam.</p>
+        <form class="sub-form" action="https://buttondown.com/api/emails/embed-subscribe/nateweber" method="post" target="_blank">
+          <input type="email" name="email" placeholder="you@example.com" required aria-label="Email" />
+          <button type="submit">Subscribe</button>
+        </form>
+      </section>
+    </main>
+
+    <footer>© 2026 Boolean Build — a Boolean Bros project.</footer>
+  </div>
+</body>
+</html>

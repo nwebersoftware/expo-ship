@@ -7,6 +7,20 @@
     <language>en</language>
     <atom:link href="https://booleanbuild.com/feed.xml" rel="self" type="application/rss+xml" />
     <item>
+      <title>“Multiple consecutive ads”: designing ad frequency that survives App Review</title>
+      <link>https://booleanbuild.com/posts/ad-frequency-review.html</link>
+      <guid>https://booleanbuild.com/posts/ad-frequency-review.html</guid>
+      <pubDate>Mon, 19 Oct 2026 08:00:00 -0500</pubDate>
+      <description>App Review rejects apps that show back-to-back interstitials. The call-site pattern that causes it, a testable frequency policy, and how to explain the change in your reply.</description>
+    </item>
+    <item>
+      <title>Your app crashes on launch in iOS 27 because it never adopted UIScene</title>
+      <link>https://booleanbuild.com/posts/ios-27-uiscene-crash.html</link>
+      <guid>https://booleanbuild.com/posts/ios-27-uiscene-crash.html</guid>
+      <pubDate>Mon, 19 Oct 2026 08:00:00 -0500</pubDate>
+      <description>EXC_BREAKPOINT in UIApplicationEvaluateRuntimeIssueForNoSceneLifecycleAdoption — why builds compiled with the iOS 27 SDK die before JavaScript runs, and how to fix it in Expo.</description>
+    </item>
+    <item>
       <title>Choosing an Expo / React Native starter template: a buyer's checklist</title>
       <link>https://booleanbuild.com/posts/choosing-an-expo-starter.html</link>
       <guid>https://booleanbuild.com/posts/choosing-an-expo-starter.html</guid>

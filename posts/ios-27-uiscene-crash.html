@@ -1,0 +1,180 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Your app crashes on launch in iOS 27 because it never adopted UIScene</title>
+  <meta name="description" content="EXC_BREAKPOINT in _UIApplicationEvaluateRuntimeIssueForNoSceneLifecycleAdoption — why builds compiled with the iOS 27 SDK die before JavaScript runs, and how to fix it in Expo without prebuild undoing it." />
+  <link rel="icon" href="../favicon.svg" type="image/svg+xml" />
+  <link rel="canonical" href="https://booleanbuild.com/posts/ios-27-uiscene-crash.html" />
+  <meta property="og:type" content="article" />
+  <meta property="og:title" content="Your app crashes on launch in iOS 27 because it never adopted UIScene" />
+  <meta property="og:description" content="A hard trap inside UIKitCore, before your JS runs — and the config plugin that fixes it for good." />
+  <script type="application/ld+json">
+  {"@context":"https://schema.org","@type":"BlogPosting","headline":"Your app crashes on launch in iOS 27 because it never adopted UIScene","datePublished":"2026-10-19","author":{"@type":"Organization","name":"Boolean Build"},"publisher":{"@type":"Organization","name":"Boolean Bros"},"mainEntityOfPage":"https://booleanbuild.com/posts/ios-27-uiscene-crash.html"}
+  </script>
+  <link rel="stylesheet" href="../style.css" />
+</head>
+<body>
+  <div class="wrap">
+    <header>
+      <a class="brand" href="../">Boolean <span>Build</span></a>
+      <nav><a href="../#posts">Posts</a><a href="../tools.html">Tools</a><a href="../products.html">Products</a><a href="../#subscribe">Subscribe</a><a href="../about.html">About</a><a href="https://github.com/nwebersoftware" rel="me">GitHub</a></nav>
+    </header>
+
+    <main>
+      <h1>Your app crashes on launch in iOS 27 because it never adopted UIScene</h1>
+
+      <p>This one is nasty because nothing in your code is wrong. The app builds, archives and uploads
+        cleanly, then dies instantly on a modern device with a stack trace that never touches your
+        JavaScript.</p>
+
+      <pre><code>Exception Type:  EXC_BREAKPOINT (SIGTRAP)
+Triggered by Thread: 0
+
+0  UIKitCore  ___UIApplicationEvaluateRuntimeIssueForNoSceneLifecycleAdoption_block_invoke + 700
+1  libdispatch.dylib  _dispatch_client_callout + 16
+2  UIKitCore  -[UIApplication workspace:didCreateScene:withTransitionContext:completion:] + 324
+3  UIKitCore  -[UIApplicationSceneClientAgent scene:didInitializeWithEvent:completion:] + 288</code></pre>
+
+      <h2>What is actually happening</h2>
+      <p>Apps compiled against the <strong>iOS 27 SDK</strong> are required to adopt the UIScene life
+        cycle. If the app has no <code>UIApplicationSceneManifest</code>, UIKit hits this check while the
+        first scene is being created and stops the process with <code>brk #0</code>. There is no
+        exception to catch and no JS to hook — <code>UIApplicationMain</code> never gets far enough.</p>
+      <p>The check is gated on the SDK the binary was built with, not the OS version and not your React
+        Native version. That is why the same source can ship for a year and then fail the day you update
+        Xcode.</p>
+
+      <h2>Why your TestFlight build looked fine</h2>
+      <p>Two reasons, and both are worth checking before you rewrite anything:</p>
+      <ul>
+        <li><strong>It was compiled with an older SDK.</strong> A CI image pinned to Xcode 26 produces a
+          binary without the trap, even though it runs on iOS 27.</li>
+        <li><strong>You tested on iOS 26.</strong> Simulators installed from an older Xcode do not
+          reproduce it.</li>
+      </ul>
+      <p>Also check the build number in any crash report you are handed. A report saying
+        <code>Version 1.1 (6)</code> says nothing about the build 8 binary you just uploaded — we lost an
+        afternoon to exactly that.</p>
+
+      <h2>The fix, in three parts</h2>
+
+      <h3>1. Declare a scene manifest</h3>
+      <p>In <code>Info.plist</code>:</p>
+      <pre><code>&lt;key&gt;UIApplicationSceneManifest&lt;/key&gt;
+&lt;dict&gt;
+  &lt;key&gt;UIApplicationSupportsMultipleScenes&lt;/key&gt;&lt;false/&gt;
+  &lt;key&gt;UISceneConfigurations&lt;/key&gt;
+  &lt;dict&gt;
+    &lt;key&gt;UIWindowSceneSessionRoleApplication&lt;/key&gt;
+    &lt;array&gt;
+      &lt;dict&gt;
+        &lt;key&gt;UISceneConfigurationName&lt;/key&gt;
+        &lt;string&gt;Default Configuration&lt;/string&gt;
+        &lt;key&gt;UISceneDelegateClassName&lt;/key&gt;
+        &lt;string&gt;$(PRODUCT_MODULE_NAME).SceneDelegate&lt;/string&gt;
+      &lt;/dict&gt;
+    &lt;/array&gt;
+  &lt;/dict&gt;
+&lt;/dict&gt;</code></pre>
+
+      <h3>2. Stop creating the window in the AppDelegate</h3>
+      <p>The default Expo template does this in <code>didFinishLaunching</code>:</p>
+      <pre><code>window = UIWindow(frame: UIScreen.main.bounds)
+factory.startReactNative(
+  withModuleName: "main",
+  in: window,
+  launchOptions: launchOptions)</code></pre>
+      <p>That has to move into the scene delegate — otherwise you get two windows and a blank app.</p>
+      <pre><code>// AppDelegate.swift
+public var launchOptions: [UIApplication.LaunchOptionsKey: Any]?
+
+func startReactNative(in window: UIWindow, launchOptions: [UIApplication.LaunchOptionsKey: Any]?) {
+  self.window = window
+  reactNativeFactory?.startReactNative(
+    withModuleName: "main",
+    in: window,
+    launchOptions: launchOptions)
+}</code></pre>
+
+      <h3>3. Add the SceneDelegate</h3>
+      <pre><code>class SceneDelegate: UIResponder, UIWindowSceneDelegate {
+  var window: UIWindow?
+
+  func scene(
+    _ scene: UIScene,
+    willConnectTo session: UISceneSession,
+    options connectionOptions: UIScene.ConnectionOptions
+  ) {
+    guard
+      let windowScene = scene as? UIWindowScene,
+      let appDelegate = UIApplication.shared.delegate as? AppDelegate
+    else { return }
+
+    // Scene cold starts deliver deep links through connectionOptions, not launchOptions.
+    var launchOptions: [UIApplication.LaunchOptionsKey: Any] = appDelegate.launchOptions ?? [:]
+    if let url = connectionOptions.urlContexts.first?.url {
+      launchOptions[.url] = url
+    }
+
+    let window = UIWindow(windowScene: windowScene)
+    self.window = window
+    appDelegate.startReactNative(in: window, launchOptions: launchOptions)
+  }
+}</code></pre>
+
+      <h2>Do it as an Expo config plugin</h2>
+      <p>If you edit <code>ios/</code> by hand, the next <code>expo prebuild</code> deletes your work.
+        Put the three changes in a plugin and register it in <code>app.json</code>:</p>
+      <pre><code>// plugins/withSceneLifecycle.js
+const { withInfoPlist, withAppDelegate } = require('@expo/config-plugins');
+
+module.exports = function withSceneLifecycle(config) {
+  config = withInfoPlist(config, (cfg) =&gt; {
+    cfg.modResults.UIApplicationSceneManifest = {
+      UIApplicationSupportsMultipleScenes: false,
+      UISceneConfigurations: {
+        UIWindowSceneSessionRoleApplication: [{
+          UISceneConfigurationName: 'Default Configuration',
+          UISceneDelegateClassName: '$(PRODUCT_MODULE_NAME).SceneDelegate',
+        }],
+      },
+    };
+    return cfg;
+  });
+
+  return withAppDelegate(config, (cfg) =&gt; {
+    let src = cfg.modResults.contents;
+    // replace the window block, append SceneDelegate
+    // (full source in the repo linked at the bottom)
+    cfg.modResults.contents = src;
+    return cfg;
+  });
+};</code></pre>
+      <p>Make the string replacements assert. If the Expo template changes, you want a build failure, not
+        a silently unpatched app.</p>
+
+      <h2>Verify the artifact, not the source</h2>
+      <p>The only proof that matters is the binary you uploaded:</p>
+      <pre><code>APP=build/YourApp.xcarchive/Products/Applications/YourApp.app
+/usr/libexec/PlistBuddy -c "Print :DTSDKName" "$APP/Info.plist"
+/usr/libexec/PlistBuddy -c "Print :UIApplicationSceneManifest" "$APP/Info.plist"
+/usr/libexec/PlistBuddy -c "Print :CFBundleVersion" "$APP/Info.plist"</code></pre>
+      <p>You want an <code>iphoneos27.*</code> SDK <em>and</em> a scene manifest <em>and</em> the build
+        number you think you shipped. Any two out of three is how this bug gets shipped twice.</p>
+
+      <section id="subscribe" class="subscribe">
+        <h2 style="margin-top:0">Get new posts</h2>
+        <p class="lead" style="font-size:16px">One email when a new post ships. No spam.</p>
+        <form class="sub-form" action="https://buttondown.com/api/emails/embed-subscribe/nateweber" method="post" target="_blank">
+          <input type="email" name="email" placeholder="you@example.com" required aria-label="Email" />
+          <button type="submit">Subscribe</button>
+        </form>
+      </section>
+    </main>
+
+    <footer>© 2026 Boolean Build — a Boolean Bros project.</footer>
+  </div>
+</body>
+</html>
