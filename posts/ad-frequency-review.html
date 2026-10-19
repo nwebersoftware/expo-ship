@@ -11,7 +11,7 @@
   <meta property="og:title" content="“Multiple consecutive ads”: designing ad frequency that survives App Review" />
   <meta property="og:description" content="Why four call sites became one rejection — and the policy that fixed it." />
   <script type="application/ld+json">
-  {"@context":"https://schema.org","@type":"BlogPosting","headline":"“Multiple consecutive ads”: designing ad frequency that survives App Review","datePublished":"2026-10-19","author":{"@type":"Organization","name":"Boolean Build"},"publisher":{"@type":"Organization","name":"Boolean Bros"},"mainEntityOfPage":"https://booleanbuild.com/posts/ad-frequency-review.html"}
+  {"@context":"https://schema.org","@type":"BlogPosting","headline":"“Multiple consecutive ads”: designing ad frequency that survives App Review","datePublished":"2026-10-19","author":{"@type":"Organization","name":"Boolean Build"},"publisher":{"@type":"Organization","name":"Boolean Build","url":"https://booleanbuild.com/","parentOrganization":{"@type":"Organization","name":"Boolean Bros LLC","url":"https://booleanbros.com/"},"sameAs":["https://booleanbros.com/"]},"mainEntityOfPage":"https://booleanbuild.com/posts/ad-frequency-review.html"}
   </script>
   <link rel="stylesheet" href="../style.css" />
 </head>
@@ -34,8 +34,9 @@
       <p>No screenshot, no timestamp, no reproduction steps. Just a claim that was, unfortunately, true.</p>
 
       <h2>The shape of the bug</h2>
-      <p>The game had four places where a run could end: a hard reset, a prestige reset, a second prestige
-        path, and a “breakthrough” confirmation. Each one did this:</p>
+      <p>The game — <a href="https://booleanbros.com/apps/byte-sized-tycoon/">Byte-Sized Tycoon</a>, an idle
+        tycoon with four prestige paths — had four places where a run could end: a hard reset, a prestige
+        reset, a second prestige path, and a “breakthrough” confirmation. Each one did this:</p>
       <pre><code>const interstitialAd = interstitialAdRef.current;
 if (interstitialAd &amp;&amp; interstitialAdLoaded) {
   interstitialAd.show();
@@ -152,7 +153,7 @@ export function canShowInterstitial(state: AdPolicyState, now: number) {
       </section>
     </main>
 
-    <footer>© 2026 Boolean Build — a Boolean Bros project.</footer>
+    <footer>© 2026 Boolean Build — a <a href="https://booleanbros.com/">Boolean Bros</a> project.</footer>
   </div>
 </body>
 </html>

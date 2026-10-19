@@ -49,3 +49,7 @@ footer { border-top: 1px solid var(--border); margin-top: 64px; padding: 28px 0 
   color: #04121a; font-weight: 700; font-size: 16px; cursor: pointer;
 }
 .hint { color: var(--muted); font-size: 13px; margin-top: 10px; }
+
+/* Parent-studio link in the footer: quiet, but obviously clickable. */
+footer a { color: var(--muted); text-decoration: underline; text-underline-offset: 3px; }
+footer a:hover { color: var(--text); }
