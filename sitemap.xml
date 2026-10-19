@@ -1,19 +1,19 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
-  <url><loc>https://booleanbuild.com/</loc></url>
-  <url><loc>https://booleanbuild.com/about.html</loc></url>
-  <url><loc>https://booleanbuild.com/tools.html</loc></url>
-  <url><loc>https://booleanbuild.com/products.html</loc></url>
-  <url><loc>https://booleanbuild.com/posts/ad-frequency-review.html</loc></url>
-  <url><loc>https://booleanbuild.com/posts/ios-27-uiscene-crash.html</loc></url>
-  <url><loc>https://booleanbuild.com/posts/choosing-an-expo-starter.html</loc></url>
-  <url><loc>https://booleanbuild.com/posts/expo-versioning.html</loc></url>
-  <url><loc>https://booleanbuild.com/posts/screenshot-rejections.html</loc></url>
-  <url><loc>https://booleanbuild.com/posts/android-manifest-rejections.html</loc></url>
-  <url><loc>https://booleanbuild.com/posts/build-gates.html</loc></url>
-  <url><loc>https://booleanbuild.com/posts/16kb-page-size.html</loc></url>
-  <url><loc>https://booleanbuild.com/posts/app-icon-rejections.html</loc></url>
-  <url><loc>https://booleanbuild.com/posts/store-rejection-checklist.html</loc></url>
-  <url><loc>https://booleanbuild.com/posts/ci-for-expo.html</loc></url>
-  <url><loc>https://booleanbuild.com/posts/testflight-without-eas.html</loc></url>
+  <url><loc>https://booleanbuild.com/</loc><lastmod>2026-10-19</lastmod></url>
+  <url><loc>https://booleanbuild.com/about.html</loc><lastmod>2026-10-19</lastmod></url>
+  <url><loc>https://booleanbuild.com/tools.html</loc><lastmod>2026-10-19</lastmod></url>
+  <url><loc>https://booleanbuild.com/products.html</loc><lastmod>2026-10-19</lastmod></url>
+  <url><loc>https://booleanbuild.com/posts/ad-frequency-review.html</loc><lastmod>2026-10-19</lastmod></url>
+  <url><loc>https://booleanbuild.com/posts/ios-27-uiscene-crash.html</loc><lastmod>2026-10-19</lastmod></url>
+  <url><loc>https://booleanbuild.com/posts/choosing-an-expo-starter.html</loc><lastmod>2026-10-16</lastmod></url>
+  <url><loc>https://booleanbuild.com/posts/expo-versioning.html</loc><lastmod>2026-10-14</lastmod></url>
+  <url><loc>https://booleanbuild.com/posts/screenshot-rejections.html</loc><lastmod>2026-10-15</lastmod></url>
+  <url><loc>https://booleanbuild.com/posts/android-manifest-rejections.html</loc><lastmod>2026-10-15</lastmod></url>
+  <url><loc>https://booleanbuild.com/posts/build-gates.html</loc><lastmod>2026-10-14</lastmod></url>
+  <url><loc>https://booleanbuild.com/posts/16kb-page-size.html</loc><lastmod>2026-10-14</lastmod></url>
+  <url><loc>https://booleanbuild.com/posts/app-icon-rejections.html</loc><lastmod>2026-10-14</lastmod></url>
+  <url><loc>https://booleanbuild.com/posts/store-rejection-checklist.html</loc><lastmod>2026-10-14</lastmod></url>
+  <url><loc>https://booleanbuild.com/posts/ci-for-expo.html</loc><lastmod>2026-10-14</lastmod></url>
+  <url><loc>https://booleanbuild.com/posts/testflight-without-eas.html</loc><lastmod>2026-10-14</lastmod></url>
 </urlset>
