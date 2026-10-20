@@ -7,6 +7,13 @@
     <language>en</language>
     <atom:link href="https://booleanbuild.com/feed.xml" rel="self" type="application/rss+xml" />
     <item>
+      <title>“Only releases with status draft may be created on draft app”</title>
+      <link>https://booleanbuild.com/posts/play-draft-app-rejection.html</link>
+      <guid>https://booleanbuild.com/posts/play-draft-app-rejection.html</guid>
+      <pubDate>Tue, 20 Oct 2026 08:15:00 -0500</pubDate>
+      <description>A first Play release only accepts status=draft. Why completed fails on a draft app, the exact API calls, and the console step that uploading never covers.</description>
+    </item>
+    <item>
       <title>The ATT prompt never appeared: fixing an App Tracking Transparency rejection</title>
       <link>https://booleanbuild.com/posts/att-prompt-not-appearing.html</link>
       <guid>https://booleanbuild.com/posts/att-prompt-not-appearing.html</guid>

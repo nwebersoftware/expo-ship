@@ -1,0 +1,127 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>“Only releases with status draft may be created on draft app” — what Play actually means</title>
+  <meta name="description" content="The Play Developer API rejects an upload with “Only releases with status draft may be created on draft app.” Why it happens on a first release, the exact status values allowed, and the step the API cannot do for you." />
+  <link rel="icon" href="../favicon.svg" type="image/svg+xml" />
+  <link rel="canonical" href="https://booleanbuild.com/posts/play-draft-app-rejection.html" />
+  <meta property="og:type" content="article" />
+  <meta property="og:title" content="“Only releases with status draft may be created on draft app” — what Play actually means" />
+  <meta property="og:description" content="A 400 that reads like an app-state error. It is a release-status error, and the fix is one word plus one manual step." />
+  <script type="application/ld+json">
+  {"@context":"https://schema.org","@type":"BlogPosting","headline":"“Only releases with status draft may be created on draft app” — what Play actually means","datePublished":"2026-10-20","author":{"@type":"Organization","name":"Boolean Build"},"publisher":{"@type":"Organization","name":"Boolean Build","url":"https://booleanbuild.com/","parentOrganization":{"@type":"Organization","name":"Boolean Bros LLC","url":"https://booleanbros.com/"},"sameAs":["https://booleanbros.com/"]},"mainEntityOfPage":"https://booleanbuild.com/posts/play-draft-app-rejection.html"}
+  </script>
+  <link rel="stylesheet" href="../style.css" />
+  <meta property="og:image" content="https://booleanbuild.com/assets/og/store-rejection-checklist.png" />
+  <meta property="og:image:width" content="1200" />
+  <meta property="og:image:height" content="630" />
+  <meta name="twitter:card" content="summary_large_image" />
+</head>
+<body>
+  <div class="wrap">
+    <header>
+      <a class="brand" href="../">Boolean <span>Build</span></a>
+      <nav><a href="../#posts">Posts</a><a href="../tools.html">Tools</a><a href="../products.html">Products</a><a href="../#subscribe">Subscribe</a><a href="../about.html">About</a><a href="https://github.com/nwebersoftware" rel="me">GitHub</a></nav>
+    </header>
+
+    <main>
+      <h1>“Only releases with status draft may be created on draft app”</h1>
+
+      <p class="lead">Your upload succeeded. The bundle is on Google's servers. Then the track update
+        returns a 400 that reads like a problem with the app, and you go looking for a missing setting
+        that does not exist. The message is about one field: <code>status</code>.</p>
+
+      <h2>When it fires</h2>
+      <p>The Android Publisher API accepts four release statuses:
+        <code>draft</code>, <code>inProgress</code>, <code>halted</code>, <code>completed</code>.</p>
+      <p>An app with <em>no published production release</em> — a draft app, which is what you have until
+        your first production rollout goes live — only accepts <code>draft</code>. Ask for
+        <code>completed</code> or <code>inProgress</code> and Play refuses, because there is no published
+        baseline for a completed release to sit on top of.</p>
+      <p>This is why the error arrives on your <em>first</em> release and then disappears forever. The
+        code did not change; the app's state did.</p>
+
+      <h2>What people try first</h2>
+      <ul>
+        <li>Re-uploading the bundle — the upload was never the problem.</li>
+        <li>Switching to the internal testing track, hoping the rule is per-track. It is about the app's
+          published state, not the track name.</li>
+        <li>Waiting for "processing" to finish. Play is not still thinking; it rejected the request.</li>
+      </ul>
+
+      <h2>The fix</h2>
+      <p>Create the release as a draft, commit the edit, then send it for review in the Play Console —
+        that last part is not exposed in the API, and it is the step that leaves people stuck at
+        "uploaded but not reviewed".</p>
+      <pre><code>PKG=com.example.app
+TOKEN=$(...)
+
+BASE=https://androidpublisher.googleapis.com/androidpublisher/v3
+UPLOAD=https://androidpublisher.googleapis.com/upload/androidpublisher/v3
+
+EDIT=$(curl -s -X POST -H "Authorization: Bearer $TOKEN" \
+  "$BASE/applications/$PKG/edits" | jq -r .id)
+
+curl -s -X POST -H "Authorization: Bearer $TOKEN" \
+  -H "Content-Type: application/octet-stream" \
+  --data-binary @app.aab \
+  "$UPLOAD/applications/$PKG/edits/$EDIT/bundles?uploadType=media"
+
+# draft is the only status a draft app accepts
+curl -s -X PUT -H "Authorization: Bearer $TOKEN" \
+  -H "Content-Type: application/json" \
+  -d "{\"releases\":[{\"versionCodes\":[\"42\"],\"status\":\"draft\"}]}" \
+  "$BASE/applications/$PKG/edits/$EDIT/tracks/production"
+
+curl -s -X POST -H "Authorization: Bearer $TOKEN" \
+  "$BASE/applications/$PKG/edits/$EDIT:commit"
+</code></pre>
+      <p>After the commit, the release exists as a draft in the console. Open Play Console → Production →
+        review the release → <strong>Send for review</strong>. Uploading has never meant publishing.</p>
+
+      <h2>Confirm the state instead of guessing</h2>
+      <p>The tracks endpoint tells you exactly what Play believes, without opening a browser:</p>
+      <pre><code>EDIT=$(curl -s -X POST -H "Authorization: Bearer $TOKEN" \
+  "$BASE/applications/$PKG/edits" | jq -r .id)
+
+curl -s -H "Authorization: Bearer $TOKEN" \\
+  "$BASE/applications/$PKG/edits/$EDIT/tracks" \\
+  | jq '.tracks[] | {
+      track,
+      statuses: [.releases[]?.status],
+      versions: [.releases[]?.versionCodes]
+    }'
+</code></pre>
+      <p>If you see <code>"draft"</code> and your version code, the upload worked and the only thing left
+        is human: the console click. If the track list is empty, your edit never committed — a common
+        outcome when a script exits non-zero before the commit and nothing checks it.</p>
+
+      <h2>Make the pipeline fail loudly</h2>
+      <p>The failure mode worth engineering against is not this error — it is a pipeline that swallows it
+        and reports success. Two cheap habits:</p>
+      <ul>
+        <li>Parse the HTTP status of every call. A 200 on upload says nothing about the track update.</li>
+        <li>Read the tracks back after committing and assert the expected <code>status</code> and
+          <code>versionCode</code>. If they are not there, exit non-zero.</li>
+      </ul>
+
+      <p>Related: <a href="android-manifest-rejections.html">manifest mistakes that get Play builds
+        rejected</a>, <a href="16kb-page-size.html">the 16 KB page-size rejection</a>, and
+        <a href="store-rejection-checklist.html">the pre-upload checklist</a>.</p>
+
+      <section id="subscribe" class="subscribe">
+        <h2 style="margin-top:0">Get new posts</h2>
+        <p class="lead" style="font-size:16px">One email when a new post ships. No spam.</p>
+        <form class="sub-form" action="https://buttondown.com/api/emails/embed-subscribe/nateweber" method="post" target="_blank">
+          <input type="email" name="email" placeholder="you@example.com" required aria-label="Email" />
+          <button type="submit">Subscribe</button>
+        </form>
+      </section>
+    </main>
+
+    <footer>© 2026 Boolean Build — a <a href="https://booleanbros.com/">Boolean Bros</a> project.</footer>
+  </div>
+</body>
+</html>
