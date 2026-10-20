@@ -1,0 +1,145 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>ATT prompt never appeared: fixing an App Tracking Transparency rejection</title>
+  <meta name="description" content="Apple rejects the build: the app links AppTrackingTransparency but the permission prompt never shows. The real cause is a request made before the app is active — and the fix is a sequence, not a call." />
+  <link rel="icon" href="../favicon.svg" type="image/svg+xml" />
+  <link rel="canonical" href="https://booleanbuild.com/posts/att-prompt-not-appearing.html" />
+  <meta property="og:type" content="article" />
+  <meta property="og:title" content="ATT prompt never appeared: fixing an App Tracking Transparency rejection" />
+  <meta property="og:description" content="Framework linked, prompt missing. Why iOS drops an ATT request made at launch, and the retry sequence that fixes it." />
+  <script type="application/ld+json">
+  {"@context":"https://schema.org","@type":"BlogPosting","headline":"ATT prompt never appeared: fixing an App Tracking Transparency rejection","datePublished":"2026-10-20","author":{"@type":"Organization","name":"Boolean Build"},"publisher":{"@type":"Organization","name":"Boolean Build","url":"https://booleanbuild.com/","parentOrganization":{"@type":"Organization","name":"Boolean Bros LLC","url":"https://booleanbros.com/"},"sameAs":["https://booleanbros.com/"]},"mainEntityOfPage":"https://booleanbuild.com/posts/att-prompt-not-appearing.html"}
+  </script>
+  <link rel="stylesheet" href="../style.css" />
+  <meta property="og:image" content="https://booleanbuild.com/assets/og/store-rejection-checklist.png" />
+  <meta property="og:image:width" content="1200" />
+  <meta property="og:image:height" content="630" />
+  <meta name="twitter:card" content="summary_large_image" />
+</head>
+<body>
+  <div class="wrap">
+    <header>
+      <a class="brand" href="../">Boolean <span>Build</span></a>
+      <nav><a href="../#posts">Posts</a><a href="../tools.html">Tools</a><a href="../products.html">Products</a><a href="../#subscribe">Subscribe</a><a href="../about.html">About</a><a href="https://github.com/nwebersoftware" rel="me">GitHub</a></nav>
+    </header>
+
+    <main>
+      <h1>ATT prompt never appeared: fixing an App Tracking Transparency rejection</h1>
+
+      <p class="lead">Apple reviewed the build on iOS 27 and wrote: the app uses the
+        AppTrackingTransparency framework, but the permission request could not be located. The code
+        called <code>requestTrackingAuthorization</code> at launch. The prompt still never showed. Both
+        statements were true at once.</p>
+
+      <p>This is the failure mode nobody documents, because it looks like a missing implementation when
+        it is actually a timing bug. If your build links AppTrackingTransparency and Apple still says the
+        prompt is absent, read the order of operations before you rewrite anything.</p>
+
+      <h2>What Apple actually sent</h2>
+      <blockquote>
+        <p>“The app uses the AppTrackingTransparency framework, but we are unable to locate the App
+          Tracking Transparency permission request when reviewed on iOS 27.0.”</p>
+      </blockquote>
+      <p>Two paths follow: prove the prompt appears with a screen recording on a physical device, or
+        remove the tracking declaration if the app does not track. Before choosing, check whether your
+        call is even reaching the system.</p>
+
+      <h2>Why a launch-time request returns nothing</h2>
+      <p>On a cold start, a request fired from a module-scope effect can run while the app is still
+        becoming active. The system answers <code>undetermined</code> without presenting anything. The
+        call resolves, your <code>await</code> completes, and no UI ever appeared.</p>
+      <p>If your ads SDK initialises on the next line, the sequencing bug becomes a compliance problem:
+        the app starts collecting before the user has answered. That is what a reviewer sees — a
+        framework in the binary and a prompt that never appears.</p>
+      <pre><code>// The shape of the bug: resolves, shows nothing, then ads start anyway
+useEffect(() => {
+  requestTrackingPermissionsAsync();   // app may not be active yet
+  mobileAds().initialize();            // runs regardless of the result
+}, []);</code></pre>
+
+      <h2>The fix is a sequence</h2>
+      <p>Wait for the app to be active, read the current status, and only ask if it is still
+        undetermined. Retry with backoff, because the first request can be dropped while the window is
+        becoming key. Initialise ads last.</p>
+      <pre><code>import { AppState, Platform } from "react-native";
+import { getTrackingPermissionsAsync, requestTrackingPermissionsAsync }
+  from "expo-tracking-transparency";
+
+function waitForActive(timeoutMs = 4000): Promise&lt;void&gt; {
+  if (AppState.currentState === "active") return Promise.resolve();
+  return new Promise((resolve) => {
+    const sub = AppState.addEventListener("change", (s) =&gt; {
+      if (s === "active") { sub.remove(); resolve(); }
+    });
+    setTimeout(() =&gt; { sub.remove(); resolve(); }, timeoutMs);
+  });
+}
+
+async function ensureATT(): Promise&lt;void&gt; {
+  if (Platform.OS !== "ios") return;
+  for (let attempt = 0; attempt &lt; 3; attempt++) {
+    const current = await getTrackingPermissionsAsync();
+    if (current.status !== "undetermined") return;      // already answered
+    if (!current.canAskAgain) return;
+    const result = await requestTrackingPermissionsAsync();
+    if (result.status !== "undetermined") return;       // prompt presented
+    await new Promise((r) =&gt; setTimeout(r, 600 * (attempt + 1)));
+  }
+}</code></pre>
+      <p>Then the order in your root layout: <code>waitForActive()</code> → short settle → 
+        <code>ensureATT()</code> → <code>mobileAds().initialize()</code>. Nothing collects before the
+        answer, and the prompt has an active window to attach to.</p>
+
+      <h2>Check the binary, not the source</h2>
+      <p>Before you blame the code, confirm what you actually shipped. The compiled JS bundle tells you
+        whether the call was even in the archive:</p>
+      <pre><code>APP=build/YourApp.xcarchive/Products/Applications/YourApp.app
+grep -c "requestTrackingPermissionsAsync" "$APP/main.jsbundle"
+/usr/libexec/PlistBuddy -c "Print :NSUserTrackingUsageDescription" "$APP/Info.plist"</code></pre>
+      <p>A non-zero count plus a usage-description string means the implementation shipped and the
+        problem is ordering. A zero means the build predates your fix — which happens more often than
+        anyone admits, because archives are easy to reuse.</p>
+
+      <h2>Replying to App Review</h2>
+      <p>Name the mechanism, not the apology. The reply that works states the cause, the change, and
+        what the recording shows:</p>
+      <ul>
+        <li>the request was made before the app was active, so the system returned without presenting</li>
+        <li>the app now waits for the active state, verifies the status, and retries</li>
+        <li>the ads SDK initialises only after the request completes</li>
+        <li>attached: a recording on a physical device, fresh install, prompt before any ad request</li>
+      </ul>
+      <p>Apple asks for the recording to be captured on a physical device, from a fresh install or after
+        resetting tracking permissions, and attached in the Notes field of App Review Information.
+        Simulators are not enough here — the reviewer knows the difference.</p>
+
+      <h2>When removing tracking is the better call</h2>
+      <p>If the app does not personalise ads, deleting the request and clearing the tracking declaration
+        in App Store Connect is a legitimate path — and only the Account Holder or Admin can change
+        privacy information. Be honest about what that costs: without ATT, ad requests are
+        non-personalised, which lowers eCPM. If your revenue per thousand impressions is already in the
+        low single digits, the personalisation you are protecting is worth very little, and the
+        rejection loop costs more than the delta.</p>
+
+      <p>Related: <a href="ios-27-uiscene-crash.html">the iOS 27 UIScene crash</a> that hits builds
+        compiled with the same SDK, <a href="ad-frequency-review.html">ad frequency that survives App
+        Review</a>, and the <a href="store-rejection-checklist.html">pre-upload rejection
+        checklist</a>.</p>
+
+      <section id="subscribe" class="subscribe">
+        <h2 style="margin-top:0">Get new posts</h2>
+        <p class="lead" style="font-size:16px">One email when a new post ships. No spam.</p>
+        <form class="sub-form" action="https://buttondown.com/api/emails/embed-subscribe/nateweber" method="post" target="_blank">
+          <input type="email" name="email" placeholder="you@example.com" required aria-label="Email" />
+          <button type="submit">Subscribe</button>
+        </form>
+      </section>
+    </main>
+
+    <footer>© 2026 Boolean Build — a <a href="https://booleanbros.com/">Boolean Bros</a> project.</footer>
+  </div>
+</body>
+</html>
