@@ -38,6 +38,14 @@
       <h2 id="posts">Posts</h2>
       <ul class="post-list">
         <li>
+          <h3><a href="posts/android-debug-keystore.html">Your release AAB was signed with the debug key</a></h3>
+          <p class="lead" style="font-size:16px">Gradle falls back to the debug keystore when release signing is unset. The build succeeds, the upload is rejected. Read signing from a file and fail at build time.</p>
+        </li>
+        <li>
+          <h3><a href="posts/prebuild-skadnetwork.html">Prebuild deleted my SKAdNetwork IDs</a></h3>
+          <p class="lead" style="font-size:16px">The list lives in Info.plist, and prebuild regenerates that file. Ads keep serving, attribution silently stops. Keep the list in app.json and verify the archive.</p>
+        </li>
+        <li>
           <h3><a href="posts/play-draft-app-rejection.html">“Only releases with status draft may be created on draft app”</a></h3>
           <p class="lead" style="font-size:16px">A 400 that reads like an app-state error is really a release-status error. Why your first Play release only accepts <code>draft</code>, and the console step the API cannot do.</p>
         </li>

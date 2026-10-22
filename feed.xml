@@ -7,6 +7,20 @@
     <language>en</language>
     <atom:link href="https://booleanbuild.com/feed.xml" rel="self" type="application/rss+xml" />
     <item>
+      <title>Your release AAB was signed with the debug key</title>
+      <link>https://booleanbuild.com/posts/android-debug-keystore.html</link>
+      <guid>https://booleanbuild.com/posts/android-debug-keystore.html</guid>
+      <pubDate>Wed, 22 Oct 2026 18:30:00 -0500</pubDate>
+      <description>Gradle falls back to the debug keystore when release signing is unset. The build succeeds, Play rejects the upload, and the fix is a config file plus a hard failure.</description>
+    </item>
+    <item>
+      <title>Prebuild deleted my SKAdNetwork IDs</title>
+      <link>https://booleanbuild.com/posts/prebuild-skadnetwork.html</link>
+      <guid>https://booleanbuild.com/posts/prebuild-skadnetwork.html</guid>
+      <pubDate>Wed, 22 Oct 2026 18:30:00 -0500</pubDate>
+      <description>SKAdNetworkItems lives in Info.plist and expo prebuild regenerates it. Ads keep working, attribution quietly stops. Keep the list in app.json and verify the archive.</description>
+    </item>
+    <item>
       <title>“Only releases with status draft may be created on draft app”</title>
       <link>https://booleanbuild.com/posts/play-draft-app-rejection.html</link>
       <guid>https://booleanbuild.com/posts/play-draft-app-rejection.html</guid>
