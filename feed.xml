@@ -6,7 +6,14 @@
     <description>Notes on shipping Expo &amp; React Native apps — release engineering, CI, and build gates.</description>
     <language>en</language>
     <atom:link href="https://booleanbuild.com/feed.xml" rel="self" type="application/rss+xml" />
-    <item>
+        <item>
+      <title>One line of spaces, dead on launch: the JSX whitespace crash</title>
+      <link>https://booleanbuild.com/posts/jsx-whitespace-launch-crash.html</link>
+      <guid>https://booleanbuild.com/posts/jsx-whitespace-launch-crash.html</guid>
+      <pubDate>Mon, 02 Nov 2026 23:30:00 -0500</pubDate>
+      <description>React Native aborts on the first frame with &quot;Text strings must be rendered within a &lt;Text&gt; component&quot; and nothing in the source looks wrong. The cause is whitespace-only JSX text on a single line, and one grep finds it.</description>
+    </item>
+<item>
       <title>Your release AAB was signed with the debug key</title>
       <link>https://booleanbuild.com/posts/android-debug-keystore.html</link>
       <guid>https://booleanbuild.com/posts/android-debug-keystore.html</guid>

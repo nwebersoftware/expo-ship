@@ -1,0 +1,126 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>One line of spaces, dead on launch: the JSX whitespace crash</title>
+  <meta name="description" content="React Native aborts on the first frame with &quot;Text strings must be rendered within a &lt;Text&gt; component&quot; and nothing in the source looks wrong. The cause is whitespace-only JSX text on a single line, and one grep finds it." />
+  <link rel="icon" href="../favicon.svg" type="image/svg+xml" />
+  <link rel="canonical" href="https://booleanbuild.com/posts/jsx-whitespace-launch-crash.html" />
+  <meta property="og:type" content="article" />
+  <meta property="og:title" content="One line of spaces, dead on launch: the JSX whitespace crash" />
+  <meta property="og:description" content="React Native aborts on the first frame with &quot;Text strings must be rendered within a &lt;Text&gt; component&quot; and nothing in the source looks wrong. The cause is whitespace-only JSX text on a single line, and one grep finds it." />
+  <script type="application/ld+json">
+  {"@context":"https://schema.org","@type":"BlogPosting","headline":"One line of spaces, dead on launch: the JSX whitespace crash","datePublished":"2026-11-02","author":{"@type":"Organization","name":"Boolean Build"},"publisher":{"@type":"Organization","name":"Boolean Build","url":"https://booleanbuild.com/","parentOrganization":{"@type":"Organization","name":"Boolean Bros LLC","url":"https://booleanbros.com/"},"sameAs":["https://booleanbros.com/"]},"mainEntityOfPage":"https://booleanbuild.com/posts/jsx-whitespace-launch-crash.html"}
+  </script>
+  <link rel="stylesheet" href="../style.css" />
+  <meta property="og:image" content="https://booleanbuild.com/assets/og/jsx-whitespace-launch-crash.png" />
+  <meta property="og:image:width" content="1200" />
+  <meta property="og:image:height" content="630" />
+  <meta name="twitter:card" content="summary_large_image" />
+  <script>window.goatcounter = { path: function (p) { return "/build" + p; } };</script>
+  <script data-goatcounter="https://booleanbros.goatcounter.com/count" async src="/assets/js/goatcounter-count.js"></script>
+</head>
+<body>
+  <div class="wrap">
+    <header>
+      <a class="brand" href="../">Boolean <span>Build</span></a>
+      <nav><a href="../#posts">Posts</a><a href="../tools.html">Tools</a><a href="../products.html">Products</a><a href="../#subscribe">Subscribe</a><a href="../about.html">About</a><a href="https://github.com/nwebersoftware" rel="me">GitHub</a></nav>
+    </header>
+
+    <main>
+
+      <h1>One line of spaces, dead on launch: the JSX whitespace crash</h1>
+
+      <p class="lead">The build launched and died in under a second: SIGABRT, no JavaScript exception in the device log, nothing useful in the crash report. The cause was a run of spaces sitting between two closing tags on the same line. Every check in the repo said the code was fine.</p>
+      
+            <p>Whitespace-only JSX text nodes are the one class of React Native crash that tooling actively hides. They are invisible in a diff, legal to TypeScript, and filtered out by the obvious lint rule. If your app aborts on the first frame with an invariant about text strings and you cannot find the string, start here.</p>
+      
+            <h2>The crash pointed at the wrong layer</h2>
+            <p>Sequence from the device: process starts, splash appears, abort at roughly 0.7 seconds. No redbox on the TestFlight build, and the system log carried no JS message — only the abort. A native crash with no JS frame sends you into the build system, so the first attempts were reverts and dependency swaps. Five builds went out that way, each one a guess.</p>
+            <p>What finally surfaced it was a fatal-error boundary that prints the JS message and component stack on screen instead of a black view. The message was React Native's own invariant:</p>
+            <pre><code>Error: Text strings must be rendered within a &lt;Text&gt; component.</code></pre>
+            <p>Something was handing a raw string to a <code>&lt;View&gt;</code>. The component in the stack renders on the first frame of every launch, which is why nothing ever painted.</p>
+      
+            <h2>Why a single line of spaces becomes a string child</h2>
+            <p>JSX drops whitespace between elements only when that whitespace contains a newline. Whitespace that lives entirely on one line — including the padding an editor leaves between two closing tags — is preserved as a literal string child:</p>
+            <pre><code>&lt;View&gt;
+        &lt;TouchableOpacity&gt;...&lt;/TouchableOpacity&gt;        &lt;/View&gt;
+      
+      // compiles to:
+      createElement(View, null, child, "        ")</code></pre>
+            <p>React Native's renderer rejects string children outside <code>&lt;Text&gt;</code>, so the throw is deterministic. It is not a race and not device-specific; it fires on the frame that mounts the tree.</p>
+            <p>Here a tab reorder joined two closing tags onto one line; the spaces came from the editor, not from typing. A second instance sat several hundred lines away, latent because that view only mounts after a tab press.</p>
+      
+            <h2>Reproduce it in six lines</h2>
+            <pre><code>export default function Bad() {
+        return (
+          &lt;View&gt;
+            &lt;Text&gt;hello&lt;/Text&gt;   &lt;/View&gt;
+        );
+      }</code></pre>
+            <p>Mount it. On a release build you get the invariant; in development the redbox points at the parent element, because the whitespace child carries no source location of its own.</p>
+      
+            <h2>The one-line check</h2>
+            <p>One pattern across every TSX file, and the result must be zero lines:</p>
+            <pre><code>rg -n --glob '*.tsx' --glob '!node_modules' '/&gt;[ \t]+&lt;/' .</code></pre>
+            <p>BSD grep on macOS has no <code>-P</code>, so the portable version is Perl:</p>
+            <pre><code>find . -name '*.tsx' -not -path '*/node_modules/*' \
+        -exec perl -ne 'print "$ARGV:$.: $_" if m{/&gt;[ \t]+&lt;}' {} +</code></pre>
+            <p>Then make it a gate instead of a habit. This script exits non-zero and lists every offending line, so packaging cannot proceed past it:</p>
+            <pre><code>// scripts/check-jsx-whitespace.mjs
+      import { readdirSync, readFileSync } from 'node:fs';
+      import { join } from 'node:path';
+      
+      const bad = [];
+      (function walk(dir) {
+        for (const e of readdirSync(dir, { withFileTypes: true })) {
+          if (e.name === 'node_modules' || e.name === '.git') continue;
+          const p = join(dir, e.name);
+          if (e.isDirectory()) walk(p);
+          else if (p.endsWith('.tsx'))
+            readFileSync(p, 'utf8').split('\n').forEach((l, i) =&gt; {
+              if (/\/&gt;[ \t]+&lt;/.test(l)) bad.push(`${p}:${i + 1}`);
+            });
+        }
+      })('.');
+      
+      if (bad.length) {
+        console.error('whitespace-only JSX text:\n' + bad.join('\n'));
+        process.exit(1);
+      }
+      console.log('jsx whitespace: clean');</code></pre>
+      
+            <h2>Why the obvious detectors miss it</h2>
+            <ul>
+              <li><strong>tsc:</strong> the JSX is type-valid. A string child is legal in the AST and illegal at runtime.</li>
+              <li><strong>unit tests:</strong> they exercise logic, and none of them mount the tab bar.</li>
+              <li><strong>AST lint rules that filter <code>text.trim() !== ''</code>:</strong> these nodes trim to empty, so a rule written that way skips exactly the case you need.</li>
+              <li><strong>diff review:</strong> whitespace-ignoring diffs hide the change, and a joined line reads as a formatting nit.</li>
+            </ul>
+      
+            <h2>The fix</h2>
+            <p>Put the closing tags on separate lines. That reintroduces the newline, and the compiler strips the whitespace child entirely — no prop change, no runtime code involved:</p>
+            <pre><code>-          &lt;/TouchableOpacity&gt;        &lt;/View&gt;
+      +          &lt;/TouchableOpacity&gt;
+      +        &lt;/View&gt;</code></pre>
+            <p>Then verify on a device before uploading. A clean type-check and a green test suite do not prove the frame renders, because the failure happens at mount, not at build.</p>
+            <p>Add the gate to the release checklist next to the type-check and the test run. It takes under a second, and it is the difference between a crashed launch and a caught line.</p>
+      
+            <p>Related: <a href="build-gates.html">build gates that fail instead of shipping blank screens</a>, <a href="ios-27-uiscene-crash.html">the iOS 27 UIScene crash</a>, and the <a href="store-rejection-checklist.html">pre-upload rejection checklist</a>.</p>
+      
+            <section id="subscribe" class="subscribe">
+              <h2 style="margin-top:0">Get new posts</h2>
+              <p class="lead" style="font-size:16px">One email when a new post ships. No spam.</p>
+              <form class="sub-form" action="https://buttondown.com/api/emails/embed-subscribe/nateweber" method="post" target="_blank">
+                <input type="email" name="email" placeholder="you@example.com" required aria-label="Email" />
+                <button type="submit">Subscribe</button>
+              </form>
+            </section>
+
+    </main>
+
+    <footer>© 2026 Boolean Build — a <a href="https://booleanbros.com/">Boolean Bros</a> project.</footer>
+  </div>
+</body>
+</html>
