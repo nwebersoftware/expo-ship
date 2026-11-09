@@ -1,0 +1,82 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Green build, dead app: the crash reporter that broke the launch</title>
+  <meta name="description" content="BUILD SUCCEEDED every time, then the app died at startup with Requiring unknown module &quot;1733&quot;. The number does not appear anywhere in the source, and the bundle Metro emitted does not define it. One grep separates a build problem from a bundling problem." />
+  <link rel="icon" href="../favicon.svg" type="image/svg+xml" />
+  <link rel="canonical" href="https://booleanbuild.com/posts/green-build-crash-on-launch.html" />
+  <meta property="og:type" content="article" />
+  <meta property="og:title" content="Green build, dead app: the crash reporter that broke the launch" />
+  <meta property="og:description" content="BUILD SUCCEEDED every time, then the app died at startup with Requiring unknown module &quot;1733&quot;. The number does not appear anywhere in the source, and the bundle Metro emitted does not define it. One grep separates a build problem from a bundling problem." />
+  <script type="application/ld+json">
+  {"@context":"https://schema.org","@type":"BlogPosting","headline":"Green build, dead app: the crash reporter that broke the launch","datePublished":"2026-11-09","author":{"@type":"Organization","name":"Boolean Build"},"publisher":{"@type":"Organization","name":"Boolean Build","url":"https://booleanbuild.com/","parentOrganization":{"@type":"Organization","name":"Boolean Bros LLC","url":"https://booleanbros.com/"},"sameAs":["https://booleanbros.com/"]},"mainEntityOfPage":"https://booleanbuild.com/posts/green-build-crash-on-launch.html"}
+  </script>
+  <link rel="stylesheet" href="../style.css" />
+  <meta property="og:image" content="https://booleanbuild.com/assets/og/default.png" />
+  <meta property="og:image:width" content="1200" />
+  <meta property="og:image:height" content="630" />
+  <meta name="twitter:card" content="summary_large_image" />
+  <script>window.goatcounter = { path: function (p) { return "/build" + p; } };</script>
+  <script data-goatcounter="https://booleanbros.goatcounter.com/count" async src="/assets/js/goatcounter-count.js"></script>
+</head>
+<body>
+  <div class="wrap">
+    <header>
+      <a class="brand" href="../">Boolean <span>Build</span></a>
+      <nav><a href="../#posts">Posts</a><a href="../tools.html">Tools</a><a href="../products.html">Products</a><a href="../#subscribe">Subscribe</a><a href="../about.html">About</a><a href="https://github.com/nwebersoftware" rel="me">GitHub</a></nav>
+    </header>
+
+    <main>
+
+      <h1>Green build, dead app: the crash reporter that broke the launch</h1>
+
+      <p class="lead">A crash reporter was installed to catch production crashes. It did its job immediately: the app stopped launching. The archive, the codesign step, and the upload all reported success. The failure only exists in the half second after the icon is tapped.</p>
+      
+      <p>The error, on every launch of the Release build:</p>
+      <pre><code>Requiring unknown module "1733"
+      Uncaught RCTFatalException</code></pre>
+      
+      <p>The first instinct is that something is missing from the build — a pod, a framework, an entry in the target's link phase. That instinct is wrong here, and it costs most of a day if you follow it.</p>
+      
+      <h2>Why the build never complained</h2>
+      <p>A React Native release build has two separate halves. The native half compiles and links; the JavaScript half is pre-bundled by Metro and copied in as a single asset. <code>BUILD SUCCEEDED</code> only attests to the first half. Metro can emit a bundle with a hole in it and the compiler will happily package the hole.</p>
+      <p>That is exactly what happened: <code>main.jsbundle</code> contained a require for module <code>1733</code> and no definition for it. A module graph that is inconsistent internally, not a missing native dependency. Nothing in Xcode, CocoaPods, or the upload path is in a position to notice.</p>
+      
+      <h2>Isolating bundling from linking</h2>
+      <p>The bisect that settled it took one build. Remove the JavaScript import of the crash reporter and keep every pod and gradle dependency linked:</p>
+      <pre><code>-import * as Sentry from "@sentry/react-native";
+      -import { getSentryExpoConfig } from "@sentry/react-native/metro";
+      +const { getDefaultConfig } = require("expo/metro-config");
+      +const config = getDefaultConfig(__dirname);</code></pre>
+      <p>Pods still installed, native modules still linked, app launches. That points at the bundler, not the linker, and it narrows the suspect to the one thing the wizard changed that Metro reads.</p>
+      <p>Four other suspects were eliminated first, each with a full build and launch: a cleared Metro cache, the wizard's Xcode bundle phase, the Expo config plugin, and <code>inlineRequires: false</code>. Every one of them reproduced the crash, which is the useful kind of negative result — it leaves a single variable standing.</p>
+      
+      <h2>The one-line check</h2>
+      <p>The crash names a module id, not a module name. That id is the whole diagnosis: if the bundle does not define it, the bundle is broken and no amount of cleaning will fix it.</p>
+      <pre><code>grep -n '1733' ios/build/Release-iphonesimulator/YourApp.app/main.jsbundle | head</code></pre>
+      <p>No output is the answer. A name-mangled module in a dev bundle becomes a bare integer here, and an integer with no definition behind it is a Metro graph that dropped an edge. Run the same grep on a bundle built with <code>getDefaultConfig</code> and the id is defined.</p>
+      
+      <h2>The second regression, and the shorter check</h2>
+      <p>Before the launch crash, the wizard's Podfile edit broke the build outright with a message that reads like a React Native bug and is not:</p>
+      <pre><code>Redefinition of module 'react_runtime'</code></pre>
+      <p>Cause: <code>use_modular_headers!</code>, added unconditionally at the top of the Podfile. React Native 0.81's new-architecture pods ship their own module maps, and a global modular-headers flag collides with them. That recipe belongs to older crash-reporter majors; the current one does not need it. Delete the line and the build compiles:</p>
+      <pre><code>-use_modular_headers!
+      </code></pre>
+      <p>Check for it before the first build, not after:</p>
+      <pre><code>grep -n 'use_modular_headers' ios/Podfile</code></pre>
+      <p>Neither of these is a reason to skip crash reporting. It is a reason to treat the installer as a commit to review rather than a command to run. Both edits landed as one wizard commit and both were wrong for this project's React Native and Expo versions.</p>
+      
+      <h2>The gate</h2>
+      <p>A build that compiles is not evidence that an app launches, and every gate that stops at <code>BUILD SUCCEEDED</code> has this exact blind spot. Install the release build on a simulator and require it to survive startup:</p>
+      <pre><code>xcrun simctl launch --console-pty booted com.example.app
+      # exits non-zero, or prints RCTFatalException, before the first screen</code></pre>
+      <p>The install order matters: crash reporting goes in before a release, ships behind a real launch check, and if the bundler does not come out clean, it does not ship. Reverting a dependency is cheaper than shipping an app that cannot open.</p>
+
+    </main>
+
+    <footer>© 2026 Boolean Build — a <a href="https://booleanbros.com/">Boolean Bros</a> project.</footer>
+  </div>
+</body>
+</html>

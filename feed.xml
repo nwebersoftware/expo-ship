@@ -6,7 +6,14 @@
     <description>Notes on shipping Expo &amp; React Native apps — release engineering, CI, and build gates.</description>
     <language>en</language>
     <atom:link href="https://booleanbuild.com/feed.xml" rel="self" type="application/rss+xml" />
-        <item>
+            <item>
+      <title>Green build, dead app: the crash reporter that broke the launch</title>
+      <link>https://booleanbuild.com/posts/green-build-crash-on-launch.html</link>
+      <guid>https://booleanbuild.com/posts/green-build-crash-on-launch.html</guid>
+      <pubDate>Mon, 09 Nov 2026 23:30:00 -0500</pubDate>
+      <description>BUILD SUCCEEDED every time, then the app died at startup with Requiring unknown module &quot;1733&quot;. The number does not appear anywhere in the source, and the bundle Metro emitted does not define it. One grep separates a build problem from a bundling problem.</description>
+    </item>
+<item>
       <title>One line of spaces, dead on launch: the JSX whitespace crash</title>
       <link>https://booleanbuild.com/posts/jsx-whitespace-launch-crash.html</link>
       <guid>https://booleanbuild.com/posts/jsx-whitespace-launch-crash.html</guid>
