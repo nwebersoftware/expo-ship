@@ -4,7 +4,7 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Versioning an Expo app: version vs buildNumber vs versionCode</title>
-  <meta name="description" content="What each number does in an Expo app — version, ios.buildNumber, android.versionCode — when to bump them, and the CI trick that avoids 'build number already used'." />
+  <meta name="description" content="What version, buildNumber and versionCode each do, when to bump them, how to read them at runtime with expo-application, and the CI trick for build numbers." />
   <link rel="icon" href="../favicon.svg" type="image/svg+xml" />
   <link rel="canonical" href="https://booleanbuild.com/posts/expo-versioning.html" />
   <meta property="og:type" content="article" />
@@ -66,6 +66,18 @@
 };</code></pre>
       <p>Then feed <code>BUILD_NUMBER</code> from your CI run number. Every upload gets a fresh, larger
         number automatically — no more “already used”.</p>
+
+      <h2>Reading the version at runtime</h2>
+      <p>If you need the numbers inside the app — an About screen, a support email, a crash report — read them
+        from the binary, not from <code>app.json</code>. The JSON is what you meant to ship. The binary is what
+        shipped.</p>
+      <pre><code>import * as Application from 'expo-application';
+
+Application.nativeApplicationVersion; // "1.6.0" — the marketing version
+Application.nativeBuildVersion;       // "36" or "11" — iOS buildNumber / Android versionCode</code></pre>
+      <p>Both return null when the native module is unavailable, so guard the render. From a terminal,
+        <code>npx expo config --json</code> prints the resolved config for the current directory, which is a
+        quick way to see what CI is about to build.</p>
 
       <h2>Check it before you upload</h2>
       <p>Missing or malformed build numbers are a common App Store bounce. <a

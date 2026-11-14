@@ -3,12 +3,12 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Your app crashes on launch in iOS 27 because it never adopted UIScene</title>
-  <meta name="description" content="EXC_BREAKPOINT in _UIApplicationEvaluateRuntimeIssueForNoSceneLifecycleAdoption — why builds compiled with the iOS 27 SDK die before JavaScript runs, and how to fix it in Expo without prebuild undoing it." />
+  <title>EXC_BREAKPOINT on Launch in iOS 27: the UIScene Fix</title>
+  <meta name="description" content="Apple's iOS 27 SDK kills builds that never adopted UIScene: EXC_BREAKPOINT before your JavaScript runs. What triggers it, and the Expo config plugin that fixes it." />
   <link rel="icon" href="../favicon.svg" type="image/svg+xml" />
   <link rel="canonical" href="https://booleanbuild.com/posts/ios-27-uiscene-crash.html" />
   <meta property="og:type" content="article" />
-  <meta property="og:title" content="Your app crashes on launch in iOS 27 because it never adopted UIScene" />
+  <meta property="og:title" content="EXC_BREAKPOINT on Launch in iOS 27: the UIScene Fix" />
   <meta property="og:description" content="A hard trap inside UIKitCore, before your JS runs — and the config plugin that fixes it for good." />
   <script type="application/ld+json">
   {"@context":"https://schema.org","@type":"BlogPosting","headline":"Your app crashes on launch in iOS 27 because it never adopted UIScene","datePublished":"2026-10-19","author":{"@type":"Organization","name":"Boolean Build"},"publisher":{"@type":"Organization","name":"Boolean Build","url":"https://booleanbuild.com/","parentOrganization":{"@type":"Organization","name":"Boolean Bros LLC","url":"https://booleanbros.com/"},"sameAs":["https://booleanbros.com/"]},"mainEntityOfPage":"https://booleanbuild.com/posts/ios-27-uiscene-crash.html"}

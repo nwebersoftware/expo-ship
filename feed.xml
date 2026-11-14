@@ -56,11 +56,11 @@
       <description>App Review rejects apps that show back-to-back interstitials. The call-site pattern that causes it, a testable frequency policy, and how to explain the change in your reply.</description>
     </item>
     <item>
-      <title>Your app crashes on launch in iOS 27 because it never adopted UIScene</title>
+      <title>EXC_BREAKPOINT on launch in iOS 27: the UIScene fix</title>
       <link>https://booleanbuild.com/posts/ios-27-uiscene-crash.html</link>
       <guid>https://booleanbuild.com/posts/ios-27-uiscene-crash.html</guid>
       <pubDate>Mon, 19 Oct 2026 08:00:00 -0500</pubDate>
-      <description>EXC_BREAKPOINT in UIApplicationEvaluateRuntimeIssueForNoSceneLifecycleAdoption — why builds compiled with the iOS 27 SDK die before JavaScript runs, and how to fix it in Expo.</description>
+      <description>Apple's iOS 27 SDK kills builds that never adopted UIScene: EXC_BREAKPOINT before your JavaScript runs. What triggers it, and the Expo config plugin that fixes it.</description>
     </item>
     <item>
       <title>Choosing an Expo / React Native starter template: a buyer's checklist</title>
@@ -91,11 +91,11 @@
       <description>What each number does, when to bump it, and the CI trick that avoids “build number already used”.</description>
     </item>
     <item>
-      <title>The app icon rules that get apps rejected (iOS + Android)</title>
+      <title>App icon rejected: iOS alpha channel, Android safe zone</title>
       <link>https://booleanbuild.com/posts/app-icon-rejections.html</link>
       <guid>https://booleanbuild.com/posts/app-icon-rejections.html</guid>
       <pubDate>Wed, 14 Oct 2026 12:00:00 -0500</pubDate>
-      <description>iOS alpha channels, Android adaptive safe zones, and the splash-icon-vs-app-icon trap that gets apps flagged as misleading.</description>
+      <description>The icon rules that block submissions: an alpha channel on iOS, adaptive-icon safe zones on Android, and the splash-vs-app-icon trap.</description>
     </item>
     <item>
       <title>Before you upload: the app-store rejection checklist</title>
