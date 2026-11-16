@@ -1,0 +1,113 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Test device ids that silently did nothing in a Release build</title>
+  <meta name="description" content="A testDeviceIdentifiers list containing only EMULATOR resolves without error and protects nothing on a physical device. The CTR arithmetic that exposed it, the one-line check, and the build-time allowlist that fixes it." />
+  <link rel="icon" href="../favicon.svg" type="image/svg+xml" />
+  <link rel="canonical" href="https://booleanbuild.com/posts/test-device-ids-release-build.html" />
+  <meta property="og:type" content="article" />
+  <meta property="og:title" content="Test device ids that silently did nothing in a Release build" />
+  <meta property="og:description" content="A testDeviceIdentifiers list containing only EMULATOR resolves without error and protects nothing on a physical device. The CTR arithmetic that exposed it, the one-line check, and the build-time allowlist that fixes it." />
+  <script type="application/ld+json">
+  {"@context":"https://schema.org","@type":"BlogPosting","headline":"Test device ids that silently did nothing in a Release build","datePublished":"2026-11-16","author":{"@type":"Organization","name":"Boolean Build"},"publisher":{"@type":"Organization","name":"Boolean Build","url":"https://booleanbuild.com/","parentOrganization":{"@type":"Organization","name":"Boolean Bros LLC","url":"https://booleanbros.com/"},"sameAs":["https://booleanbros.com/"]},"mainEntityOfPage":"https://booleanbuild.com/posts/test-device-ids-release-build.html"}
+  </script>
+  <link rel="stylesheet" href="../style.css" />
+  <meta property="og:image" content="https://booleanbuild.com/assets/og/default.png" />
+  <meta property="og:image:width" content="1200" />
+  <meta property="og:image:height" content="630" />
+  <meta name="twitter:card" content="summary_large_image" />
+  <script>window.goatcounter = { path: function (p) { return "/build" + p; } };</script>
+  <script data-goatcounter="https://booleanbros.goatcounter.com/count" async src="/assets/js/goatcounter-count.js"></script>
+</head>
+<body>
+  <div class="wrap">
+    <header>
+      <a class="brand" href="../">Boolean <span>Build</span></a>
+      <nav><a href="../#posts">Posts</a><a href="../tools.html">Tools</a><a href="../products.html">Products</a><a href="../#subscribe">Subscribe</a><a href="../about.html">About</a><a href="https://github.com/nwebersoftware" rel="me">GitHub</a></nav>
+    </header>
+
+    <main>
+
+      <h1>Test device ids that silently did nothing in a Release build</h1>
+
+      <p class="lead">The config was present, awaited, and it resolved without error. <code>testDeviceIdentifiers</code> had one entry: <code>"EMULATOR"</code>. On a simulator that works. On the physical phone used for QA, running a TestFlight build where <code>__DEV__ === false</code>, it protects nothing, and every request that device makes is a live request.</p>
+      
+      <p>It did not surface as an exception. It surfaced as arithmetic: <strong>10 clicks on 5 impressions</strong> in one day for a single app. Ten clicks from five impressions is not user behaviour, it is one person tapping the same ad. Over 14 days across the portfolio: 12 clicks on 33 impressions, 36.4% CTR, on roughly nine installs a week. That is invalid traffic by definition, generated on hardware we control, and it cost a publisher account a 29-day suspension.</p>
+      
+      <h2>Why __DEV__ is not the safety net it looks like</h2>
+      
+      <p>Ad unit selection in every app gated on <code>__DEV__</code>:</p>
+      
+      <pre><code>export const ADMOB_BANNER_AD_UNIT_ID = __DEV__ || AD_TEST_IDS
+        ? TestIds.BANNER
+        : Platform.OS === "ios"
+          ? ADMOB_BANNER_AD_UNIT_ID_IOS
+          : ADMOB_BANNER_AD_UNIT_ID_ANDROID;</code></pre>
+      
+      <p>Correct for a debug build, backwards for a Release build. The artifact that reaches a human is the unprotected one:</p>
+      <ul>
+        <li><code>expo start</code> — <code>__DEV__</code> true → sample units → safe</li>
+        <li>TestFlight, Play internal track, local archive — <code>__DEV__</code> false → real units → live</li>
+      </ul>
+      
+      <p>Three things keep it quiet.</p>
+      <ul>
+        <li><code>setRequestConfiguration</code> resolves whether or not the running device matches anything on the list. An unlisted device is not a warning, it is a live ad request.</li>
+        <li>The only notice is the SDK's own log line, printing the device identifier and asking you to add it. It reads like ad noise and gets scrolled past.</li>
+        <li>Nothing fails on the simulator, the one device always covered.</li>
+      </ul>
+      
+      <h2>The one-line check</h2>
+      
+      <pre><code>grep -rn "testDeviceIdentifiers" --include=*.ts --include=*.tsx .</code></pre>
+      
+      <p>If the answer is a literal array containing only <code>"EMULATOR"</code>, every phone you own is a live device in every Release build. Two of five apps returned nothing at all — no <code>setRequestConfiguration</code> call anywhere, so the SDK ran on defaults nobody chose.</p>
+      
+      <p>Check the binary next, because a fix that never reached the archive is the same as no fix. The environment value is inlined at build time, so a working allowlist appears as a literal:</p>
+      
+      <pre><code>APP=build/YourApp.xcarchive/Products/Applications/YourApp.app
+      grep -c "ABCD1234" "$APP/main.jsbundle"   # first 8 chars of the id the build log printed</code></pre>
+      
+      <p>Zero means the id is not in the build you are about to upload.</p>
+      
+      <h2>The fix: move the ids out of source</h2>
+      
+      <pre><code>// constants/admob.ts
+      const ENV_TEST_DEVICES = (process.env.EXPO_PUBLIC_TEST_DEVICE_IDS ?? "")
+        .split(",")
+        .map((id) =&gt; id.trim())
+        .filter(Boolean);
+      
+      export const TEST_DEVICE_IDS: string[] = ["EMULATOR", ...ENV_TEST_DEVICES];</code></pre>
+      
+      <p>Pass it before <code>initialize()</code>, so no request can precede the configuration:</p>
+      
+      <pre><code>const ads = mobileAds();
+      await ads.setRequestConfiguration({ testDeviceIdentifiers: TEST_DEVICE_IDS });
+      await ads.initialize();</code></pre>
+      
+      <p>The build scripts do the join, so adding a QA phone is one line in one file and no code change:</p>
+      
+      <pre><code>IDS="$(grep -vE '^[[:space:]]*(#|$)' "$AD_TEST_DEVICES_FILE" | tr -d ' \r' | paste -sd, -)"
+      export EXPO_PUBLIC_TEST_DEVICE_IDS="${EXPO_PUBLIC_TEST_DEVICE_IDS:+$EXPO_PUBLIC_TEST_DEVICE_IDS,}$IDS"</code></pre>
+      
+      <h2>Why not a force-test-ads flag</h2>
+      
+      <p>The first design was one switch: build with <code>EXPO_PUBLIC_FORCE_TEST_ADS=1</code>, serve sample units, verify, done. Wrong for a pipeline where a TestFlight artifact is promoted unchanged to the App Store — the flag rides along and production ships with no revenue at all. A device-scoped list is safe to bake into a shipping binary because it changes behaviour only for the ids on it.</p>
+      
+      <p>Two layers exist and only one is durable: registering a device in the ad console stops working once the advertising identifier is unavailable — a denied ATT prompt is enough — while the in-app list is matched at request time. The console entry is documentation; the code is the control.</p>
+      
+      <h2>Make it a gate, not a habit</h2>
+      
+      <p>A static check across every app repo: development must resolve sample units, a Release path must carry a device list with something on it beyond <code>"EMULATOR"</code>, and the list must come from the environment. Before the patch, zero of five passed. Now five of five do, and the next app added to the pipeline has to clear the same bar before upload.</p>
+      
+      <p>Related: <a href="att-prompt-not-appearing.html">the ATT prompt that never appeared</a>, <a href="ad-frequency-review.html">ad frequency that survives App Review</a>, and <a href="build-gates.html">build gates that fail before upload</a>.</p>
+
+    </main>
+
+    <footer>© 2026 Boolean Build — a <a href="https://booleanbros.com/">Boolean Bros</a> project.</footer>
+  </div>
+</body>
+</html>

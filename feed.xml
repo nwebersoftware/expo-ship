@@ -6,7 +6,14 @@
     <description>Notes on shipping Expo &amp; React Native apps — release engineering, CI, and build gates.</description>
     <language>en</language>
     <atom:link href="https://booleanbuild.com/feed.xml" rel="self" type="application/rss+xml" />
-            <item>
+                <item>
+      <title>Test device ids that silently did nothing in a Release build</title>
+      <link>https://booleanbuild.com/posts/test-device-ids-release-build.html</link>
+      <guid>https://booleanbuild.com/posts/test-device-ids-release-build.html</guid>
+      <pubDate>Mon, 16 Nov 2026 23:30:00 -0500</pubDate>
+      <description>A testDeviceIdentifiers list containing only EMULATOR resolves without error and protects nothing on a physical device. The CTR arithmetic that exposed it, the one-line check, and the build-time allowlist that fixes it.</description>
+    </item>
+<item>
       <title>Green build, dead app: the crash reporter that broke the launch</title>
       <link>https://booleanbuild.com/posts/green-build-crash-on-launch.html</link>
       <guid>https://booleanbuild.com/posts/green-build-crash-on-launch.html</guid>
