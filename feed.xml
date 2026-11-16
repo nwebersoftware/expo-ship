@@ -6,7 +6,14 @@
     <description>Notes on shipping Expo &amp; React Native apps — release engineering, CI, and build gates.</description>
     <language>en</language>
     <atom:link href="https://booleanbuild.com/feed.xml" rel="self" type="application/rss+xml" />
-                <item>
+                    <item>
+      <title>I'm taking app submissions as fixed-fee work</title>
+      <link>https://booleanbuild.com/posts/app-submission-service.html</link>
+      <guid>https://booleanbuild.com/posts/app-submission-service.html</guid>
+      <pubDate>Mon, 16 Nov 2026 23:30:00 -0500</pubDate>
+      <description>Four of my apps are live on both stores, and none of them got there on the first try. That gap is now a service: a working repo taken through review, from $395, rejection fixes included.</description>
+    </item>
+<item>
       <title>Test device ids that silently did nothing in a Release build</title>
       <link>https://booleanbuild.com/posts/test-device-ids-release-build.html</link>
       <guid>https://booleanbuild.com/posts/test-device-ids-release-build.html</guid>

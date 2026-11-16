@@ -53,3 +53,10 @@ footer { border-top: 1px solid var(--border); margin-top: 64px; padding: 28px 0 
 /* Parent-studio link in the footer: quiet, but obviously clickable. */
 footer a { color: var(--muted); text-decoration: underline; text-underline-offset: 3px; }
 footer a:hover { color: var(--text); }
+
+@media (max-width: 560px) {
+  header { flex-wrap: wrap; gap: 6px; padding-top: 28px; }
+  nav { width: 100%; display: flex; flex-wrap: wrap; gap: 2px 16px; }
+  nav a { margin-left: 0; font-size: 14px; }
+  h1 { font-size: 32px; }
+}

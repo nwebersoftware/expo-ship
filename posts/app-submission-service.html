@@ -1,0 +1,66 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>I'm taking app submissions as fixed-fee work</title>
+  <meta name="description" content="Four of my apps are live on both stores, and none of them got there on the first try. That gap is now a service: a working repo taken through review, from $395, rejection fixes included." />
+  <link rel="icon" href="../favicon.svg" type="image/svg+xml" />
+  <link rel="canonical" href="https://booleanbuild.com/posts/app-submission-service.html" />
+  <meta property="og:type" content="article" />
+  <meta property="og:title" content="I'm taking app submissions as fixed-fee work" />
+  <meta property="og:description" content="Four of my apps are live on both stores, and none of them got there on the first try. That gap is now a service: a working repo taken through review, from $395, rejection fixes included." />
+  <script type="application/ld+json">
+  {"@context":"https://schema.org","@type":"BlogPosting","headline":"I'm taking app submissions as fixed-fee work","datePublished":"2026-11-16","author":{"@type":"Organization","name":"Boolean Build"},"publisher":{"@type":"Organization","name":"Boolean Build","url":"https://booleanbuild.com/","parentOrganization":{"@type":"Organization","name":"Boolean Bros LLC","url":"https://booleanbros.com/"},"sameAs":["https://booleanbros.com/"]},"mainEntityOfPage":"https://booleanbuild.com/posts/app-submission-service.html"}
+  </script>
+  <link rel="stylesheet" href="../style.css" />
+  <meta property="og:image" content="https://booleanbuild.com/assets/og/app-submission-service.png" />
+  <meta property="og:image:width" content="1200" />
+  <meta property="og:image:height" content="630" />
+  <meta name="twitter:card" content="summary_large_image" />
+  <script>window.goatcounter = { path: function (p) { return "/build" + p; } };</script>
+  <script data-goatcounter="https://booleanbros.goatcounter.com/count" async src="/assets/js/goatcounter-count.js"></script>
+</head>
+<body>
+  <div class="wrap">
+    <header>
+      <a class="brand" href="../">Boolean <span>Build</span></a>
+      <nav><a href="../#posts">Posts</a><a href="../tools.html">Tools</a><a href="../products.html">Products</a><a href="../#subscribe">Subscribe</a><a href="../about.html">About</a><a href="https://github.com/nwebersoftware" rel="me">GitHub</a></nav>
+    </header>
+
+    <main>
+
+      <h1>I'm taking app submissions as fixed-fee work</h1>
+
+      <p>Four of my apps are live on the App Store and Google Play: an idle game, a card game, a memory game, a neon puzzle. None of them passed review on the first submission, and only one failed for a reason I would have guessed in advance.</p>
+      
+      <p>That gap between "it builds on my machine" and "there is a public link you can send people" is where most apps stall. The app is usually fine. The release is the problem. Signing, an icon with an alpha channel, a privacy manifest that has to declare reason codes for APIs you did not know you were calling, five screenshot sizes, a data-collection questionnaire that rejects your build because of one checkbox.</p>
+      
+      <h2>So it is a service now</h2>
+      
+      <p>Fixed fee per app, from $395. I take a working repo, build it, fix what blocks submission, do the store assets and the listing copy, submit to both stores, and handle the rejection if one comes back. Prices and scope are at <a href="https://booleanbros.com/ship/">booleanbros.com/ship</a>. There is also a <a href="https://www.fiverr.com/natejweber/publish-your-app-to-the-app-store-and-google-play">Fiverr listing</a> if you would rather keep the money in escrow until it is done.</p>
+      
+      <p>Two things I will not do. Promise approval: Apple can reject anything, and the fee buys the work, not the verdict. And take your developer accounts: you invite mine as an App Manager and a Play Console release user, the listing stays in your name, and you can revoke access the afternoon the app goes live.</p>
+      
+      <h2>What actually goes wrong</h2>
+      
+      <ul>
+        <li><strong>4.2.2, minimum functionality.</strong> The app is a web view with extra steps. This one is not fixable with an argument, so the build needs real native capability: offline storage, notifications, share sheets, haptics.</li>
+        <li><strong>5.1.1(v), account deletion.</strong> If the app creates accounts, it has to let people delete them, server-side, without emailing support.</li>
+        <li><strong>ITMS-91053.</strong> A required-reason API your build calls that <code>PrivacyInfo.xcprivacy</code> does not declare. Machine-generated, no human involved, easy to fix once you know which API it is.</li>
+        <li><strong>ITMS-90717.</strong> Transparency in the 1024px icon. The upload fails with a code instead of a sentence.</li>
+        <li><strong>Play Console data safety.</strong> The form asks about data your dependencies collect. Answer it wrong and the listing gets pulled weeks later, not at upload.</li>
+      </ul>
+      
+      <h2>Who this is for</h2>
+      
+      <p>Mostly solo developers and small teams on Expo, React Native or Capacitor who got stuck at review, or never submitted because the checklist is longer than the app. The work starts at the repo and ends at a live listing, so it does not fit an app that is not built yet. That is development, and it is a different job.</p>
+      
+      <p>If you are mid-rejection right now, send the guideline number and the review text. I can usually tell you in one message whether it is a build fix, a product fix, or a lost cause worth appealing.</p>
+
+    </main>
+
+    <footer>© 2026 Boolean Build — a <a href="https://booleanbros.com/">Boolean Bros</a> project.</footer>
+  </div>
+</body>
+</html>
