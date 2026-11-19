@@ -131,6 +131,28 @@ grep -c "requestTrackingPermissionsAsync" "$APP/main.jsbundle"
         Review</a>, and the <a href="store-rejection-checklist.html">pre-upload rejection
         checklist</a>.</p>
 
+      <h2>The case this came from</h2>
+      <p>This post started as a rejection on one of our own apps, so the dates are real.</p>
+      <p><strong>HiLo Card Club 1.2, build 16</strong> — rejected 22 October 2026 under Guideline 2.1.
+        The prompt existed and worked. It was requested only when a player tapped "Watch ad", and the
+        same release had removed the home-screen banner that used to provide the other path to it. A
+        reviewer who opened the app, looked around and closed it never tapped anything, so the prompt
+        never fired.</p>
+      <p><strong>The fix (build 17):</strong> a launch-path helper that waits for <code>AppState</code>
+        <code>active</code> with a four-second cap, settles 250ms, then requests — retrying up to three
+        times while the status stays <code>undetermined</code>, because cold starts can report that for
+        a moment after the app appears. The rewarded-ad call site kept its request as an idempotent
+        backstop. ATT now resolves before the ad SDK initialises on iOS.</p>
+      <p><strong>Verified on a release build with a fresh simulator install</strong>, not a dev device.
+        That distinction is the point: a device that has already answered the prompt shows nothing,
+        which is how the first version passed internal testing and failed review. The log showed
+        <code>requestTrackingAuthorizationWithCompletionHandler</code> firing with prior status
+        <code>0</code>, and the prompt appearing on launch with the rewritten purpose string.</p>
+      <p><strong>Outcome:</strong> build 17 approved 23 October 2026 at 07:58, and 1.2 has been live on
+        both stores since. The same launch-path helper now ships in every app we release.</p>
+      <p>If you are staring at this rejection right now and would rather have someone else do the
+        diagnosis, that is what the audit is for: <a href="/products.html">booleanbuild.com/products</a>.</p>
+
       <section id="subscribe" class="subscribe">
         <h2 style="margin-top:0">Get new posts</h2>
         <p class="lead" style="font-size:16px">One email when a new post ships. No spam.</p>
