@@ -3,15 +3,22 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>The Android manifest mistakes that get Play builds rejected</title>
-  <meta name="description" content="android:exported, debuggable, cleartext, allowBackup, targetSdkVersion and permissions — the manifest attributes that get Android builds rejected, and how to check them before you upload." />
+  <title>Manifest merger failed with multiple errors: read the report, fix the conflict</title>
+  <meta name="description" content="&quot;Manifest merger failed with multiple errors, see logs&quot; is a summary, not the error. Where the merger report lives, the four conflicts behind it, and the exact tools:replace, minSdk and exported fixes — including what to do in an Expo project." />
   <link rel="icon" href="../favicon.svg" type="image/svg+xml" />
   <link rel="canonical" href="https://booleanbuild.com/posts/android-manifest-rejections.html" />
   <meta property="og:type" content="article" />
-  <meta property="og:title" content="The Android manifest mistakes that get Play builds rejected" />
-  <meta property="og:description" content="The six manifest attributes that sink Android submissions — and how to check them in one command." />
+  <meta property="og:title" content="Manifest merger failed with multiple errors: read the report, fix the conflict" />
+  <meta property="og:description" content="The summary message tells you nothing. The merger report tells you everything — here is where it is and the four conflicts it names most often." />
   <script type="application/ld+json">
-  {"@context":"https://schema.org","@type":"BlogPosting","headline":"The Android manifest mistakes that get Play builds rejected","datePublished":"2026-10-15","author":{"@type":"Organization","name":"Boolean Build"},"publisher":{"@type":"Organization","name":"Boolean Build","url":"https://booleanbuild.com/","parentOrganization":{"@type":"Organization","name":"Boolean Bros LLC","url":"https://booleanbros.com/"},"sameAs":["https://booleanbros.com/"]},"mainEntityOfPage":"https://booleanbuild.com/posts/android-manifest-rejections.html"}
+  {"@context":"https://schema.org","@type":"BlogPosting","headline":"Manifest merger failed with multiple errors: read the report, fix the conflict","datePublished":"2026-10-15","dateModified":"2026-11-20","author":{"@type":"Organization","name":"Boolean Build"},"publisher":{"@type":"Organization","name":"Boolean Build","url":"https://booleanbuild.com/","parentOrganization":{"@type":"Organization","name":"Boolean Bros LLC","url":"https://booleanbros.com/"},"sameAs":["https://booleanbros.com/"]},"mainEntityOfPage":"https://booleanbuild.com/posts/android-manifest-rejections.html"}
+  </script>
+  <script type="application/ld+json">
+  {"@context":"https://schema.org","@type":"FAQPage","mainEntity":[
+    {"@type":"Question","name":"What does \"Manifest merger failed with multiple errors, see logs\" mean?","acceptedAnswer":{"@type":"Answer","text":"It is the summary Gradle prints when more than one manifest conflict was found. The actual conflicts are listed in the manifest merger report at app/build/outputs/logs/manifest-merger-<variant>-report.txt, or by re-running the process<Variant>Manifest task with --stacktrace."}},
+    {"@type":"Question","name":"How do I fix \"Attribute application@theme value=... also present at ...\"?","acceptedAnswer":{"@type":"Answer","text":"Two manifests declare the same attribute with different values. Keep the value you want and tell the merger to override the other declaration with tools:replace on the application element, for example tools:replace=\"android:theme\". Add xmlns:tools=\"http://schemas.android.com/tools\" to the manifest element if it is not declared."}},
+    {"@type":"Question","name":"Why does a manifest merge error come back after expo prebuild?","acceptedAnswer":{"@type":"Answer","text":"Because prebuild regenerates the android directory from app.json and the installed plugins, so a hand edit to android/app/src/main/AndroidManifest.xml is thrown away. Move the change into app.json, expo-build-properties, or a config plugin that writes it with withAndroidManifest."}}
+  ]}
   </script>
   <link rel="stylesheet" href="../style.css" />
   <meta property="og:image" content="https://booleanbuild.com/assets/og/android-manifest-rejections.png" />
@@ -29,41 +36,206 @@
     </header>
 
     <main>
-      <h1>The Android manifest mistakes that get Play builds rejected</h1>
+      <h1>“Manifest merger failed with multiple errors” — read the report, fix the conflict</h1>
 
-      <p>Almost every Android release problem that isn’t a crash is a line in
-        <code>AndroidManifest.xml</code>. The manifest is the first thing Play’s own tooling reads, the
-        thing your permissions are derived from, and — because React Native merges yours together with
-        every library’s — the file nobody actually looks at until something breaks.</p>
+      <p>You changed one line, hit build, and got this:</p>
 
-      <p>These are the six attributes that show up again and again in rejections, install failures and
-        pre-launch crashes. All six are checkable before you upload.</p>
+      <pre class="wrappable"><code>Execution failed for task ':app:processReleaseManifest'.
+&gt; Manifest merger failed with multiple errors, see logs</code></pre>
 
-      <h2>1. <code>android:exported</code> missing on a component with an intent filter</h2>
-      <p>Since Android 12 (API 31), <strong>any</strong> activity, service or receiver with an
-        <code>&lt;intent-filter&gt;</code> must declare <code>android:exported</code> explicitly. Omit it
-        and the build fails to install on API 31+, which surfaces as an instant crash in pre-launch
-        reports rather than a clean error.</p>
-      <pre><code>&lt;activity android:name=".MainActivity" android:exported="true"&gt;
-  &lt;intent-filter&gt;
-    &lt;action android:name="android.intent.action.MAIN" /&gt;
-    &lt;category android:name="android.intent.category.LAUNCHER" /&gt;
-  &lt;/intent-filter&gt;
-&lt;/activity&gt;</code></pre>
-      <p>Deep-link filters deserve the same care: if a filter is only for your own <code>app://</code>
-        scheme, <code>exported="false"</code> is usually the correct answer, and it’s the safer default.</p>
+      <p>That sentence is not an error message. It is a summary: the merger found more than one
+        conflict and printed one line instead of several. Everything you need is in the report it
+        wrote, and the report is the part nobody reads.</p>
 
-      <h2>2. <code>android:debuggable="true"</code> in a release</h2>
-      <p>Shipping a debug variant is the classic “Play says my app is debuggable” rejection. It usually
-        comes from building <code>assembleDebug</code> by hand instead of a release variant, or from a
-        stale <code>debug</code> applicationId surviving in a merged manifest. The merged manifest is the
-        only place to verify it — it’s the file that actually gets packaged.</p>
+      <p>This post is the reading order — where the report is, the four conflicts it names most often,
+        the exact attribute that fixes each one, and why the same error keeps coming back in Expo
+        projects after a clean build.</p>
 
-      <h2>3. <code>usesCleartextTraffic="true"</code></h2>
-      <p>A blanket cleartext allowance means the app may talk HTTP. Play flags it, and it contradicts the
-        “data encrypted in transit” box you ticked in the Data safety form. If a single dev host genuinely
-        needs HTTP, use a network security config scoped to that domain instead of a global flag:</p>
+      <h2>Find the merger report</h2>
+
+      <p>Gradle writes a plain-text report next to the build outputs. For a release build it is:</p>
+
+      <pre><code>android/app/build/outputs/logs/manifest-merger-release-report.txt</code></pre>
+
+      <p>With flavours or build types the filename follows the variant:
+        <code>manifest-merger-internalRelease-report.txt</code> and so on. The merged result itself —
+        the file that actually ships — is here:</p>
+
+      <pre><code>android/app/build/intermediates/merged_manifests/release/AndroidManifest.xml</code></pre>
+
+      <p>If the report is missing or you only have the one-line summary, rerun the manifest task alone
+        with the stack trace on. It finishes in seconds and stops before anything else in the build
+        can bury the message:</p>
+
+      <pre><code>cd android
+./gradlew :app:processReleaseManifest --stacktrace</code></pre>
+
+      <p>Search the output for <code>ERROR</code> and read the blocks under it. Each block names the
+        attribute, both values, and the two files that disagree. That is your whole diagnosis.</p>
+
+      <h2>Conflict 1: the same attribute with two different values</h2>
+
+      <p>By far the most common shape. Two manifests declare one attribute — usually on
+        <code>&lt;application&gt;</code> — with different values, and the merger refuses to guess:</p>
+
+      <pre class="wrappable"><code>Manifest merger failed : Attribute application@theme value=(@style/AppTheme) from AndroidManifest.xml:12:9-45
+    is also present at [com.some.sdk:1.4.0] AndroidManifest.xml:9:18-63 value=(@style/SdkTheme).
+    Suggestion: add 'tools:replace="android:theme"' to &lt;application&gt; element at AndroidManifest.xml:11:3-45 to override.</code></pre>
+
+      <p>The merger even tells you the fix, which is why this one is embarrassing rather than hard.
+        Declare the <code>tools</code> namespace on the root element and override the specific
+        attribute — not the whole element:</p>
+
+      <pre><code>&lt;manifest xmlns:android="http://schemas.android.com/apk/res/android"
+          xmlns:tools="http://schemas.android.com/tools"&gt;
+
+  &lt;application
+      android:theme="@style/AppTheme"
+      tools:replace="android:theme"&gt;</code></pre>
+
+      <p>List only the attributes you are actually overriding. A blunt
+        <code>tools:replace="android:theme,android:icon,android:label,android:allowBackup"</code> is how
+        a library’s deliberate value gets silently dropped and a later bug gets blamed on the library.</p>
+
+      <p>The same message appears for <code>android:name</code> on a merged component — two providers
+        claiming the same authority, for instance. <code>tools:replace</code> works there too, but stop
+        and check whether both providers are genuinely needed first; overriding an authority collision
+        can leave a content provider unreachable at runtime.</p>
+
+      <h2>Conflict 2: minSdk lower than a library’s</h2>
+
+      <pre class="wrappable"><code>Manifest merger failed : uses-sdk:minSdkVersion 21 cannot be smaller than version 24 declared in library [com.example:lib:2.1.0]</code></pre>
+
+      <p>A dependency requires a newer Android version than your app declares. You have two honest
+        options and one dishonest one.</p>
+
+      <p><strong>Raise minSdk</strong> — usually correct. In Expo that is one plugin entry, not a
+        hand-edited Gradle file:</p>
+
+      <pre><code>{
+  "expo": {
+    "plugins": [
+      ["expo-build-properties", { "android": { "minSdkVersion": 24 } }]
+    ]
+  }
+}</code></pre>
+
+      <p><strong>Drop the library</strong> if it is pulling in a much newer floor than the feature is
+        worth. Check <code>./gradlew :app:dependencies</code> for who brought it in — it is often a
+        transitive dependency of something else, and a patch-level bump of the parent can fix the floor
+        without you touching minSdk at all.</p>
+
+      <p><strong>The dishonest option</strong> is <code>tools:overrideLibrary</code>, which tells the
+        merger to ignore the requirement:</p>
+
+      <pre><code>&lt;uses-sdk tools:overrideLibrary="com.example.lib" /&gt;</code></pre>
+
+      <p>It compiles, and then the library calls an API that does not exist on API 21 devices and you
+        get a <code>NoSuchMethodError</code> in production instead of a build failure. Treat it as a
+        last resort, and only when you know the newer code path is never reached.</p>
+
+      <h2>Conflict 3: a component with an intent filter and no <code>android:exported</code></h2>
+
+      <p>Since Android 12, any activity, service or receiver with an <code>&lt;intent-filter&gt;</code>
+        must state <code>android:exported</code> explicitly. AGP surfaces the omission as a merge
+        error rather than a quiet default:</p>
+
+      <pre class="wrappable"><code>Manifest merger failed : android:exported needs to be explicitly specified for element
+    &lt;activity#com.example.MainActivity&gt;. Apps targeting Android 12 and higher are required to
+    specify an explicit value for android:exported when the corresponding component has an intent filter.</code></pre>
+
+      <p>The value is a security decision, not a formality:</p>
+
+      <ul>
+        <li><strong>Launcher activity</strong> → <code>android:exported="true"</code>. Nothing else works.</li>
+        <li><strong>Your own deep-link scheme</strong> (<code>myapp://</code>) → usually
+          <code>false</code>. Another app cannot open it, and nothing legitimate needs to.</li>
+        <li><strong>App Links</strong> on your own https domain → <code>true</code>, plus
+          <code>autoVerify="true"</code> and the asset-links file on the server.</li>
+        <li><strong>SDK components</strong> → the library should declare it. If it does not, that is a
+          library bug; overriding it in your manifest with <code>tools:node="merge"</code> is a workaround
+          worth commenting in the repo.</li>
+      </ul>
+
+      <p>If the offending component comes from a library, add the attribute without taking ownership of
+        the element:</p>
+
+      <pre><code>&lt;activity
+    android:name="com.some.sdk.RedirectActivity"
+    android:exported="false"
+    tools:node="merge" /&gt;</code></pre>
+
+      <h2>Conflict 4: <code>tools:replace</code> with nothing to replace it with</h2>
+
+      <p>A confusing one, because the error blames the fix you just added:</p>
+
+      <pre class="wrappable"><code>Manifest merger failed : tools:replace specified at line:14 for attribute android:label,
+    but no new value specified</code></pre>
+
+      <p>You asked the merger to override an attribute without giving it the value to use.
+        <code>tools:replace</code> is an instruction, not a value — the attribute has to be present on
+        the same element:</p>
+
+      <pre><code>&lt;application android:label="@string/app_name" tools:replace="android:label"&gt;</code></pre>
+
+      <p>The inverse also bites: <code>tools:replace</code> written on
+        <code>&lt;manifest&gt;</code> instead of <code>&lt;application&gt;</code> does nothing, because
+        the merge happens per element.</p>
+
+      <h2>Why it comes back after a clean build in Expo</h2>
+
+      <p>This is the part that wastes an afternoon. You fix the manifest, build passes, you run
+        <code>npx expo prebuild --clean</code> or delete <code>android/</code>, and the identical error
+        returns.</p>
+
+      <p>Because <code>android/app/src/main/AndroidManifest.xml</code> is <strong>generated</strong>
+        whenever the native project is regenerated — it is output, not source. A hand edit survives
+        exactly until the next prebuild.</p>
+
+      <p>Put the change where the generator will read it:</p>
+
+      <ul>
+        <li><strong>Simple values</strong> — <code>app.json</code>: <code>android.permissions</code>,
+          <code>android.blockedPermissions</code>, and the <code>expo-build-properties</code> plugin for
+          SDK levels.</li>
+        <li><strong>Anything structural</strong> — a config plugin using
+          <code>withAndroidManifest</code>. It runs during prebuild, so the edit is reproducible and
+          survives <code>--clean</code>:</li>
+      </ul>
+
+      <pre><code>// plugins/withExportedFlag.js
+const { withAndroidManifest } = require('expo/config-plugins');
+
+module.exports = function withExportedFlag(config) {
+  return withAndroidManifest(config, (cfg) =&gt; {
+    const app = cfg.modResults.manifest.application?.[0];
+    const activities = app?.activity ?? [];
+    const launcher = activities.find((a) =&gt;
+      a['intent-filter']?.some((f) =&gt;
+        f.action?.some((x) =&gt; x.$['android:name'] === 'android.intent.action.MAIN')));
+    if (launcher) launcher.$['android:exported'] = 'true';
+    return cfg;
+  });
+};</code></pre>
+
+      <p>Rules of thumb: never edit <code>android/</code> without expecting to lose it, and treat a
+        merge error that reappears after prebuild as proof the fix was in the wrong layer.</p>
+
+      <h2>Once the merge succeeds: the attributes that get you rejected later</h2>
+
+      <p>A green build is not a green submission. These are the manifest values that pass the merger and
+        then fail Play review, install, or the Data safety audit.</p>
+
+      <h3><code>android:debuggable="true"</code> in a release</h3>
+      <p>Usually a hand-run <code>assembleDebug</code> or a stale <code>debug</code> applicationId in the
+        merged manifest. The merged file is the only one worth checking, because it is the one packaged.</p>
+
+      <h3><code>usesCleartextTraffic="true"</code></h3>
+      <p>A blanket allowance means the app may speak HTTP, which contradicts the “data encrypted in
+        transit” answer in the Data safety form. If one dev host genuinely needs it, scope it instead:</p>
+
       <pre><code>&lt;application android:networkSecurityConfig="@xml/network_security_config"&gt;</code></pre>
+
       <pre><code>&lt;!-- res/xml/network_security_config.xml --&gt;
 &lt;network-security-config&gt;
   &lt;domain-config cleartextTrafficPermitted="true"&gt;
@@ -71,65 +243,48 @@
   &lt;/domain-config&gt;
 &lt;/network-security-config&gt;</code></pre>
 
-      <h2>4. <code>allowBackup="true"</code></h2>
-      <p>Not a rejection on its own, but it lets anyone with adb extract app data from a signed build,
-        which is awkward to explain in a privacy review. For apps holding credentials or health data,
-        <code>android:allowBackup="false"</code> (plus a backup rules file if you want partial backup) is
-        the defensible choice.</p>
+      <h3><code>allowBackup="true"</code></h3>
+      <p>Not a rejection by itself, but it lets anyone with adb extract app data from a signed build —
+        awkward to explain in a privacy review. For apps holding credentials or health data,
+        <code>android:allowBackup="false"</code> is the defensible default.</p>
 
-      <h2>5. <code>targetSdkVersion</code> falling behind</h2>
-      <p>Play requires new apps and updates to target an API level no more than one year older than the
-        latest major Android release, with the deadline landing each August. Miss it and every upload is
-        rejected until you bump. It’s boring and it lands annually without warning, which is exactly why
-        it should be a CI check rather than a calendar reminder.</p>
+      <h3><code>targetSdkVersion</code> falling behind</h3>
+      <p>Play requires new apps and updates to target an API level no more than a year behind the latest
+        release, with the deadline landing each August. Miss it and every upload is rejected until you
+        bump. It should be a CI check, not a calendar reminder. Note the asymmetry: target may be newer
+        than compile, never the reverse.</p>
 
-      <p>In Expo, the manifest value comes from your build properties, so the fix is one plugin entry:</p>
-      <pre><code>{
-  "expo": {
-    "plugins": [
-      ["expo-build-properties", {
-        "android": { "compileSdkVersion": 35, "targetSdkVersion": 36 }
-      }]
-    ]
-  }
-}</code></pre>
-      <p>Note the asymmetry: <code>targetSdkVersion</code> may be newer than
-        <code>compileSdkVersion</code> (AGP allows it), but not the reverse. If
-        <code>expo-modules-core</code> fails to compile after a bump, the compile SDK is the number to
-        walk back, not the target.</p>
-
-      <h2>6. Permissions that don’t match your Data safety form</h2>
-      <p>The manifest is the source of truth for what you request, so a mismatch with the Data safety
-        form is trivially detectable — by Play and by anyone reading your AAB. Two failure modes:</p>
+      <h3>Permissions that do not match your Data safety form</h3>
+      <p>The manifest is the source of truth for what you request, so a mismatch is trivially detectable
+        — by Play and by anyone reading the AAB. Two failure modes:</p>
       <ul>
-        <li><strong>Inherited permissions.</strong> Libraries add them for you: ad SDKs add
-          <code>com.google.android.gms.permission.AD_ID</code>, analytics adds <code>INTERNET</code> and
-          <code>ACCESS_NETWORK_STATE</code>, map SDKs add location. They must be declared in Data safety
+        <li><strong>Inherited permissions.</strong> Ad SDKs add
+          <code>com.google.android.gms.permission.AD_ID</code>; analytics adds <code>INTERNET</code> and
+          <code>ACCESS_NETWORK_STATE</code>; map SDKs add location. They must be declared in Data safety
           even though you never typed them.</li>
         <li><strong>Restricted permissions.</strong> <code>QUERY_ALL_PACKAGES</code>,
           <code>MANAGE_EXTERNAL_STORAGE</code>, <code>ACCESS_BACKGROUND_LOCATION</code> and
-          <code>READ_SMS</code> require a declaration form and a use case Play accepts. Pulling one in by
-          accident means a rejection — Expo lets you strip a library’s permission from the final manifest:</li>
+          <code>READ_SMS</code> need a declaration form and a use case Play accepts. Expo can strip one a
+          library dragged in:</li>
       </ul>
-      <pre><code>{
-  "expo": {
-    "android": {
-      "blockedPermissions": ["com.google.android.gms.permission.AD_ID"]
-    }
-  }
-}</code></pre>
-      <p>Do <em>not</em> use <code>blockedPermissions</code> to paper over a permission you actually use,
-        though. Play’s automated check reads the same manifest you do.</p>
+      <pre><code>{ "expo": { "android": { "blockedPermissions": ["com.google.android.gms.permission.AD_ID"] } } }</code></pre>
+      <p>Do not use <code>blockedPermissions</code> to paper over a permission you actually use. Play’s
+        automated check reads the same manifest you do.</p>
 
-      <h2>Read the merged manifest, not the one you wrote</h2>
-      <p>Your source manifest is a wish; the merged manifest is what ships. Find it after a release build:</p>
+      <h2>Check the artifact, not the source</h2>
+
+      <p>Everything above is mechanical, which means it belongs in CI rather than in your head. Your
+        source manifest is a wish; the merged manifest is what ships. After a release build:</p>
+
       <pre><code># path varies a little by AGP version
-android/app/build/intermediates/merged_manifests/release/*/AndroidManifest.xml</code></pre>
-      <p>To inspect the AAB itself, <code>bundletool dump manifest --bundle app-release.aab</code> works
-        (it needs Java), and <code>aapt2 dump xmltree</code> does the same for a binary APK manifest.
-        If you’d rather not install the Android SDK on every machine and CI runner, that’s what
-        <a href="../tools.html">manifest-check</a> is for — it parses the AAB’s protobuf manifest (or a
-        text one) with no Java, no SDK, and exits non-zero on the two blocking findings:</p>
+android/app/build/intermediates/merged_manifests/release/*/AndroidManifest.xml
+
+# or inspect the bundle you are about to upload
+bundletool dump manifest --bundle app-release.aab</code></pre>
+
+      <p><code>bundletool</code> needs Java. If you would rather not install the Android SDK on every
+        runner, <a href="../tools.html">manifest-check</a> parses the AAB’s protobuf manifest (or a text
+        one) with no Java and no SDK, and exits non-zero on the blocking findings:</p>
 
       <pre><code>npx @njweber/android-manifest-check ./app-release.aab</code></pre>
 
@@ -144,11 +299,25 @@ artifact: ./app-release.aab
 ✓ targetSdkVersion  targetSdkVersion 36
 ✓ permissions  15 permission(s) declared, 7 sensitive — each needs a Play data-safety declaration</code></pre>
 
-      <p>That’s the whole argument for checking the manifest in CI: these failures are all mechanical, and
-        every one of them is cheaper to catch on the pull request than in a Play review. Pair it with the
-        <a href="16kb-page-size.html">16 KB page-size check</a> on the same artifact and the Android side
-        of a release stops being a guessing game. The rest of the recurring reasons live in the
-        <a href="store-rejection-checklist.html">rejection checklist</a>.</p>
+      <p>Pair it with the <a href="16kb-page-size.html">16 KB page-size check</a> on the same artifact and
+        the Android side of a release stops being a guessing game. The rest of the recurring reasons live
+        in the <a href="store-rejection-checklist.html">rejection checklist</a>.</p>
+
+      <h2>Frequently asked</h2>
+
+      <h3>Where is the manifest merger report?</h3>
+      <p><code>android/app/build/outputs/logs/manifest-merger-&lt;variant&gt;-report.txt</code>. If it is
+        not there, run <code>./gradlew :app:processReleaseManifest --stacktrace</code> and read the
+        <code>ERROR</code> blocks.</p>
+
+      <h3>Can I just delete the conflicting library?</h3>
+      <p>Sometimes, and it is worth checking who pulled it in first
+        (<code>./gradlew :app:dependencies</code>). Most conflicts are one attribute, not one dependency —
+        <code>tools:replace</code> is a smaller change than removing a library.</p>
+
+      <h3>Does this happen on iOS too?</h3>
+      <p>No. iOS has no manifest merger; the equivalent class of problem is a Podfile conflict or a
+        duplicate symbol at link time, which fails differently and later.</p>
 
       <section id="subscribe" class="subscribe">
         <h2 style="margin-top:0">Get new posts</h2>

@@ -30,6 +30,7 @@ a { color: var(--accent); }
 .post-list .date, .date { color: var(--muted); font-size: 14px; }
 .post-list h3 { margin: 4px 0 6px; }
 .post-list a { text-decoration: none; }
+pre.wrappable { white-space: pre-wrap; overflow-wrap: anywhere; }
 pre { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 16px; overflow: auto; font-size: 14px; }
 code { font-family: "SF Mono", Menlo, Consolas, monospace; }
 :not(pre) > code { background: var(--surface); border: 1px solid var(--border); border-radius: 6px; padding: 1px 6px; font-size: 15px; }

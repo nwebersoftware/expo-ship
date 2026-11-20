@@ -91,11 +91,11 @@
       <description>Why raw phone captures fail Google Play's 2:1 screenshot limit, the App Store's native sizes, and how to gate both in CI.</description>
     </item>
     <item>
-      <title>The Android manifest mistakes that get Play builds rejected</title>
+      <title>“Manifest merger failed with multiple errors” — read the report, fix the conflict</title>
       <link>https://booleanbuild.com/posts/android-manifest-rejections.html</link>
       <guid>https://booleanbuild.com/posts/android-manifest-rejections.html</guid>
-      <pubDate>Thu, 15 Oct 2026 07:30:00 -0500</pubDate>
-      <description>android:exported, debuggable, cleartext, allowBackup, targetSdkVersion and permissions — the six manifest attributes that sink Play submissions, and how to check them before you upload.</description>
+      <pubDate>Fri, 20 Nov 2026 09:00:00 -0600</pubDate>
+      <description>That sentence is a summary, not an error. Where the merger report lives, the four conflicts behind it, and the exact tools:replace, minSdk and android:exported fixes — including the Expo prebuild trap that undoes your edit.</description>
     </item>
     <item>
       <title>Versioning an Expo app: version vs buildNumber vs versionCode</title>
