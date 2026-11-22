@@ -97,10 +97,31 @@
         <code>tools:replace="android:theme,android:icon,android:label,android:allowBackup"</code> is how
         a library’s deliberate value gets silently dropped and a later bug gets blamed on the library.</p>
 
-      <p>The same message appears for <code>android:name</code> on a merged component — two providers
-        claiming the same authority, for instance. <code>tools:replace</code> works there too, but stop
-        and check whether both providers are genuinely needed first; overriding an authority collision
-        can leave a content provider unreachable at runtime.</p>
+      <p>The same message shows up on <code>&lt;provider&gt;</code> elements, and in a React Native
+        build it is almost always a FileProvider collision. Two libraries ship a provider with different
+        <code>android:authorities</code> values and the merger stops on the element, not on the
+        application:</p>
+
+      <pre class="wrappable"><code>Attribute provider#androidx.core.content.FileProvider@authorities value=(com.yourapp.fileprovider)
+    is also present at [com.some.sdk:2.1.0] AndroidManifest.xml:22:13-58 value=(com.some.fileprovider).
+    Suggestion: add 'tools:replace="android:authorities"' to &lt;provider&gt; element to override.</code></pre>
+
+      <p>If both providers are genuinely needed, give yours an authority that cannot collide and say so on
+        the element:</p>
+
+      <pre><code>&lt;provider
+    android:name="androidx.core.content.FileProvider"
+    android:authorities="${applicationId}.fileprovider"
+    tools:replace="android:authorities" /&gt;</code></pre>
+
+      <p>If the second provider belongs to an SDK you don’t actually use, delete it from the merged output
+        rather than picking a winner between two values:</p>
+
+      <pre><code>&lt;provider android:name="com.unused.sdk.ShareProvider" tools:node="remove" /&gt;</code></pre>
+
+      <p>The bad outcome is overriding the authority while leaving both providers installed: the build
+        goes green, then a share sheet or a camera capture fails at runtime with a
+        <code>FileProvider</code> path error, or worse, two apps on the device fight over one authority.</p>
 
       <h2>Conflict 2: minSdk lower than a library’s</h2>
 
