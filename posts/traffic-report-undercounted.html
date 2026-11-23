@@ -1,0 +1,108 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>A traffic report that silently lost half its pageviews</title>
+  <meta name="description" content="Two API calls described the same set of requests and were never compared, so a transient 404 printed 3 pageviews against a real 7 with no error. The diff that exposes it, plus retry, labelled fallback and a divergence warning." />
+  <link rel="icon" href="../favicon.svg" type="image/svg+xml" />
+  <link rel="canonical" href="https://booleanbuild.com/posts/traffic-report-undercounted.html" />
+  <meta property="og:type" content="article" />
+  <meta property="og:title" content="A traffic report that silently lost half its pageviews" />
+  <meta property="og:description" content="Two API calls described the same set of requests and were never compared, so a transient 404 printed 3 pageviews against a real 7 with no error. The diff that exposes it, plus retry, labelled fallback and a divergence warning." />
+  <script type="application/ld+json">
+  {"@context":"https://schema.org","@type":"BlogPosting","headline":"A traffic report that silently lost half its pageviews","datePublished":"2026-11-23","author":{"@type":"Organization","name":"Boolean Build"},"publisher":{"@type":"Organization","name":"Boolean Build","url":"https://booleanbuild.com/","parentOrganization":{"@type":"Organization","name":"Boolean Bros LLC","url":"https://booleanbros.com/"},"sameAs":["https://booleanbros.com/"]},"mainEntityOfPage":"https://booleanbuild.com/posts/traffic-report-undercounted.html"}
+  </script>
+  <link rel="stylesheet" href="../style.css" />
+  <meta property="og:image" content="https://booleanbuild.com/assets/og/default.png" />
+  <meta property="og:image:width" content="1200" />
+  <meta property="og:image:height" content="630" />
+  <meta name="twitter:card" content="summary_large_image" />
+  <script>window.goatcounter = { path: function (p) { return "/build" + p; } };</script>
+  <script data-goatcounter="https://booleanbros.goatcounter.com/count" async src="/assets/js/goatcounter-count.js"></script>
+</head>
+<body>
+  <div class="wrap">
+    <header>
+      <a class="brand" href="../">Boolean <span>Build</span></a>
+      <nav><a href="../#posts">Posts</a><a href="../tools.html">Tools</a><a href="../products.html">Products</a><a href="../#subscribe">Subscribe</a><a href="../about.html">About</a><a href="https://github.com/nwebersoftware" rel="me">GitHub</a></nav>
+    </header>
+
+    <main>
+
+      <h1>A traffic report that silently lost half its pageviews</h1>
+
+      <p class="lead">A morning traffic read said <code>2 paths, 3 pageviews</code>. The same window held five paths and seven pageviews. The script exited 0, printed no warning, and both halves of that sentence came from the same program — which is exactly why the number was believed.</p>
+      
+      <p>The report made two API calls per run. <code>/stats/total</code> produced the headline pageview count; <code>/stats/hits</code> produced the per-path list. Both asked for the same range, and neither result was ever checked against the other.</p>
+      
+      <h2>Why it was silent</h2>
+      
+      <ul>
+      <li>A 404 from GoatCounter means the range has no rows. It also means the request failed. The two are indistinguishable from the response alone, so an empty week and a dropped call print the same thing: less traffic.</li>
+      <li>A 429 or a 5xx is a temporary condition, not a verdict. The client had no way to tell those apart from a real failure, so the only options were to abort the read or to accept whatever came back.</li>
+      <li>The headline and the path list came from different calls. One could succeed while the other returned nothing, and no line of code compared them.</li>
+      </ul>
+      
+      <p>A second error was hiding in the same output. Every smoke check and event ping this site fires lands on a path containing <code>zz-</code>, and the counter treats it as a visitor. On 11-17, 4 of 11 pageviews were our own test traffic. So the number was wrong in both directions at once, and both errors read as ordinary variance.</p>
+      
+      <h2>The one-line check</h2>
+      
+      <p>Ask both endpoints for the same window and compare. They describe the same set of requests, so the totals should agree within the hits limit:</p>
+      
+      <pre><code>
+      curl -s -H "Authorization: Bearer $GOATCOUNTER_TOKEN" \
+        "https://booleanbros.goatcounter.com/api/v0/stats/total?start=2026-11-16T00:00:00Z&amp;end=2026-11-22T23:59:59Z" | jq .total
+      
+      curl -s -H "Authorization: Bearer $GOATCOUNTER_TOKEN" \
+        "https://booleanbros.goatcounter.com/api/v0/stats/hits?limit=100&amp;start=2026-11-16T00:00:00Z&amp;end=2026-11-22T23:59:59Z" \
+        | jq '[.hits[].count] | add'
+      </code></pre>
+      
+      <p>Three against seven is the bug, not a trend. Any gap larger than a few pageviews means one of the two responses is partial. The fix is not to average them.</p>
+      
+      <h2>The fix</h2>
+      
+      <p>Retry the status codes that mean "try again" and fail on the ones that mean "you are wrong":</p>
+      
+      <pre><code>
+      const RETRYABLE = new Set([404, 429, 500, 502, 503, 504]);
+      
+      if (!RETRYABLE.has(res.status)) throw new Error(msg);
+      await new Promise((r) =&gt; setTimeout(r, 400 * (attempt + 1) ** 2));
+      </code></pre>
+      
+      <p>Two retries, 400 ms and then 1.6 s, clears a rate limit and costs nothing in a read-only tool. A 400 or 401 still throws on the first response, because retrying a bad token only hides the cause.</p>
+      
+      <p>Second, the headline has to survive a failed totals call without inventing a number. The fallback is the summed path count, labelled every time it is used:</p>
+      
+      <pre><code>
+      console.log(`pageviews: ~${realSum} (FALLBACK — /stats/total failed: ${totalsError})`);
+      console.log('  summed path count, undercounts past the hits limit; quote it with the ~');
+      </code></pre>
+      
+      <p>The tilde and the parenthetical travel with the number. Whoever copies it into a brief inherits the caveat, which is the only dependable way to stop an estimate from hardening into a fact two steps downstream.</p>
+      
+      <p>Third, diff the two numbers and say so when they disagree:</p>
+      
+      <pre><code>
+      const gap = Math.abs(realTotal - realSum);
+      if (realSum &gt; 0 &amp;&amp; gap &gt; Math.max(3, realTotal * 0.2)) {
+        console.log(`! totals and path sum disagree by ${gap} — one response is partial`);
+      }
+      </code></pre>
+      
+      <p>Test artifacts come out of both sides before any of that arithmetic, matching <code>/zz-/i</code> against the path, so the comparison is between real traffic numbers rather than a real total and a polluted sum.</p>
+      
+      <h2>The gate</h2>
+      
+      <p>The change was verified against a stub server instead of the live API, one failure per run: a 500 on totals printed the fallback line, a total of 30 against a path sum of 6 printed the divergence warning, and a bad token printed <code>paths: unavailable</code> and exited 1. Then the live run: seven pageviews, five paths, exit 0.</p>
+      
+      <p>None of that would have caught the original problem by itself. The rule that does is smaller: never print two numbers describing the same set without diffing them in the same breath. A metric that can halve itself with no error and no warning is not a measurement — it is a guess with a timestamp.</p>
+
+    </main>
+
+    <footer>© 2026 Boolean Build — a <a href="https://booleanbros.com/">Boolean Bros</a> project.</footer>
+  </div>
+</body>
+</html>

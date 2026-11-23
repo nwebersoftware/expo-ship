@@ -6,7 +6,14 @@
     <description>Notes on shipping Expo &amp; React Native apps — release engineering, CI, and build gates.</description>
     <language>en</language>
     <atom:link href="https://booleanbuild.com/feed.xml" rel="self" type="application/rss+xml" />
-                    <item>
+                        <item>
+      <title>A traffic report that silently lost half its pageviews</title>
+      <link>https://booleanbuild.com/posts/traffic-report-undercounted.html</link>
+      <guid>https://booleanbuild.com/posts/traffic-report-undercounted.html</guid>
+      <pubDate>Mon, 23 Nov 2026 23:30:00 -0500</pubDate>
+      <description>Two API calls described the same set of requests and were never compared, so a transient 404 printed 3 pageviews against a real 7 with no error. The diff that exposes it, plus retry, labelled fallback and a divergence warning.</description>
+    </item>
+<item>
       <title>I'm taking app submissions as fixed-fee work</title>
       <link>https://booleanbuild.com/posts/app-submission-service.html</link>
       <guid>https://booleanbuild.com/posts/app-submission-service.html</guid>
